@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
+import { ConfirmationDialog } from '@/components/confirmation-dialog';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { FEEDING_STAGE_LOOKUP } from '@/constants/feeding';
 import { usePlants } from '@/context/PlantContext';
+import { PlantState } from '@/types/plant';
 import { formatMl } from '@/utils/feeding';
 
 const formatDate = (iso?: string) => {
@@ -17,11 +19,18 @@ const formatDate = (iso?: string) => {
 };
 
 export default function ArchiveScreen() {
-  const { plants, archivePlant, deletePlant } = usePlants();
+  const { plants, archivePlant, deletePlant, updatePlant } = usePlants();
   const archivedPlants = useMemo(() => plants.filter(plant => Boolean(plant.archivedAt)), [plants]);
+  const [pendingRename, setPendingRename] = useState<PlantState | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const handleRestore = (id: string) => {
     archivePlant(id, false);
+  };
+
+  const handleRename = (plant: PlantState) => {
+    setPendingRename(plant);
+    setRenameValue(plant.name);
   };
 
   const handleDelete = (id: string) => {
@@ -38,6 +47,23 @@ export default function ArchiveScreen() {
         },
       ]
     );
+  };
+
+  const handleConfirmRename = () => {
+    if (!pendingRename) return;
+    const nextName = renameValue.trim();
+    if (!nextName) return;
+    updatePlant(pendingRename.id, prev => ({
+      ...prev,
+      name: nextName,
+    }));
+    setPendingRename(null);
+    setRenameValue('');
+  };
+
+  const handleCancelRename = () => {
+    setPendingRename(null);
+    setRenameValue('');
   };
 
   return (
@@ -65,6 +91,13 @@ export default function ArchiveScreen() {
                     </ThemedText>
                   </View>
                   <View style={styles.actions}>
+                    <Pressable
+                      style={styles.actionButton}
+                      onPress={() => handleRename(plant)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Rename ${plant.name}`}>
+                      <ThemedText type="defaultSemiBold">Rename</ThemedText>
+                    </Pressable>
                     <Pressable
                       style={[styles.actionButton, styles.restoreButton]}
                       onPress={() => handleRestore(plant.id)}
@@ -100,6 +133,25 @@ export default function ArchiveScreen() {
           })
         )}
       </ScrollView>
+      <ConfirmationDialog
+        visible={Boolean(pendingRename)}
+        title="Rename plant"
+        message={pendingRename ? `Give ${pendingRename.name} a new name.` : 'Rename this plant.'}
+        confirmLabel="Save"
+        confirmDisabled={!renameValue.trim()}
+        onCancel={handleCancelRename}
+        onConfirm={handleConfirmRename}>
+        <TextInput
+          style={styles.renameInput}
+          value={renameValue}
+          onChangeText={setRenameValue}
+          placeholder="New plant name"
+          placeholderTextColor="rgba(148, 163, 184, 0.7)"
+          autoFocus
+          returnKeyType="done"
+          onSubmitEditing={handleConfirmRename}
+        />
+      </ConfirmationDialog>
     </ThemedView>
   );
 }
@@ -161,6 +213,15 @@ const styles = StyleSheet.create({
   },
   deleteLabel: {
     color: '#f87171',
+  },
+  renameInput: {
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(148, 163, 184, 0.4)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#e2e8f0',
   },
   summaryRow: {
     gap: 4,

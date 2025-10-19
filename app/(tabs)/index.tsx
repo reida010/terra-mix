@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ConfirmationDialog } from '@/components/confirmation-dialog';
 import { AdditiveCard } from '@/components/additive-card';
@@ -40,6 +40,8 @@ export default function HomeScreen() {
     plantId: string;
     log: WateringLogEntry;
   } | null>(null);
+  const [pendingRename, setPendingRename] = useState<PlantState | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
     if (!selectedId && activePlants.length > 0) {
@@ -140,6 +142,12 @@ export default function HomeScreen() {
     setPendingArchive(plant);
   };
 
+  const handleRenamePlant = () => {
+    if (!plant) return;
+    setPendingRename(plant);
+    setRenameValue(plant.name);
+  };
+
   const handleConfirmArchive = () => {
     if (!pendingArchive) return;
     archivePlant(pendingArchive.id, true);
@@ -201,6 +209,23 @@ export default function HomeScreen() {
 
   const handleCancelDeleteLog = () => {
     setPendingLogDelete(null);
+  };
+
+  const handleCancelRename = () => {
+    setPendingRename(null);
+    setRenameValue('');
+  };
+
+  const handleConfirmRename = () => {
+    if (!pendingRename) return;
+    const nextName = renameValue.trim();
+    if (!nextName) return;
+    updatePlant(pendingRename.id, prev => ({
+      ...prev,
+      name: nextName,
+    }));
+    setPendingRename(null);
+    setRenameValue('');
   };
 
   const handleSubmitLog = () => {
@@ -413,6 +438,15 @@ export default function HomeScreen() {
             <ThemedText type="title">Watering history</ThemedText>
             <View style={styles.historyActions}>
               <Pressable
+                style={styles.renameButton}
+                onPress={handleRenamePlant}
+                accessibilityRole="button"
+                accessibilityLabel={`Rename ${plant.name}`}>
+                <ThemedText type="defaultSemiBold" style={styles.renameLabel}>
+                  Rename
+                </ThemedText>
+              </Pressable>
+              <Pressable
                 style={styles.archiveButton}
                 onPress={handleArchivePlant}
                 accessibilityRole="button"
@@ -481,6 +515,25 @@ export default function HomeScreen() {
         onCancel={handleCancelDeleteLog}
         onConfirm={handleConfirmDeleteLog}
       />
+      <ConfirmationDialog
+        visible={Boolean(pendingRename)}
+        title="Rename plant"
+        message={pendingRename ? `Give ${pendingRename.name} a new name.` : 'Rename this plant.'}
+        confirmLabel="Save"
+        confirmDisabled={!renameValue.trim()}
+        onCancel={handleCancelRename}
+        onConfirm={handleConfirmRename}>
+        <TextInput
+          style={styles.renameInput}
+          value={renameValue}
+          onChangeText={setRenameValue}
+          placeholder="New plant name"
+          placeholderTextColor="rgba(148, 163, 184, 0.7)"
+          autoFocus
+          returnKeyType="done"
+          onSubmitEditing={handleConfirmRename}
+        />
+      </ConfirmationDialog>
     </>
   );
 }
@@ -543,6 +596,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  renameButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(148, 163, 184, 0.4)',
+  },
+  renameLabel: {
+    fontSize: 14,
+  },
   deletePlantButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -587,5 +650,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: 'rgba(59, 130, 246, 0.15)',
     fontSize: 13,
+  },
+  renameInput: {
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(148, 163, 184, 0.4)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#e2e8f0',
   },
 });

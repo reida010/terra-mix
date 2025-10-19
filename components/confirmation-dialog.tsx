@@ -7,12 +7,14 @@ import { ThemedView } from '@/components/themed-view';
 interface ConfirmationDialogProps {
   visible: boolean;
   title: string;
-  message: string;
+  message?: string;
   confirmLabel?: string;
   cancelLabel?: string;
   confirmTone?: 'default' | 'destructive';
+  confirmDisabled?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
+  children?: React.ReactNode;
 }
 
 export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
@@ -22,8 +24,10 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   confirmTone = 'default',
+  confirmDisabled = false,
   onCancel,
   onConfirm,
+  children,
 }) => {
   return (
     <Modal
@@ -36,7 +40,8 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           <ThemedText type="title" style={styles.title}>
             {title}
           </ThemedText>
-          <ThemedText style={styles.message}>{message}</ThemedText>
+          {message ? <ThemedText style={styles.message}>{message}</ThemedText> : null}
+          {children ? <View style={styles.content}>{children}</View> : null}
           <View style={styles.actions}>
             <Pressable
               onPress={onCancel}
@@ -48,13 +53,21 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
               </ThemedText>
             </Pressable>
             <Pressable
+              disabled={confirmDisabled}
               onPress={onConfirm}
-              style={[styles.actionButton, confirmTone === 'destructive' ? styles.destructiveButton : styles.confirmButton]}
+              style={[
+                styles.actionButton,
+                confirmTone === 'destructive' ? styles.destructiveButton : styles.confirmButton,
+                confirmDisabled && styles.disabledButton,
+              ]}
               accessibilityRole="button"
               accessibilityLabel={`${confirmLabel} ${title.toLowerCase()}`}>
               <ThemedText
                 type="defaultSemiBold"
-                style={confirmTone === 'destructive' ? styles.destructiveLabel : styles.confirmLabel}>
+                style={[
+                  confirmTone === 'destructive' ? styles.destructiveLabel : styles.confirmLabel,
+                  confirmDisabled && styles.disabledLabel,
+                ]}>
                 {confirmLabel}
               </ThemedText>
             </Pressable>
@@ -88,6 +101,10 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     textAlign: 'center',
   },
+  content: {
+    marginTop: 4,
+    gap: 12,
+  },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -120,5 +137,11 @@ const styles = StyleSheet.create({
   destructiveLabel: {
     fontSize: 14,
     color: '#f87171',
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  disabledLabel: {
+    opacity: 0.6,
   },
 });
