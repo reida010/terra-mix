@@ -30,6 +30,10 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
 export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot, onToggleFulvic, onAdjustBloom, waterLiters, doses }) => {
   const colorScheme = useColorScheme() ?? 'light';
   const palette = Colors[colorScheme];
+  const stageId = plant.stageId;
+  const allowsRoot = stageId === 'seedling' || stageId === 'earlyGrow' || stageId === 'grow';
+  const allowsFulvic = allowsRoot || stageId === 'preflower';
+  const allowsBloom = stageId === 'preflower' || stageId === 'flower' || stageId === 'lateFlower' || stageId === 'ripen';
   const rootDaysRemaining = useMemo(() => {
     if (!plant.additives.rootStimulant.active || !plant.additives.rootStimulant.startDate) {
       return plant.additives.rootStimulant.durationDays;
@@ -70,155 +74,159 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
   return (
     <View style={styles.container}>
       <ThemedText type="title">Additives</ThemedText>
-      <ThemedView style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}> 
-        <View style={styles.headerRow}>
-          <View style={styles.headerText}>
-            <ThemedText type="subtitle">Root Stimulant</ThemedText>
-            <ThemedText style={styles.subtle}>
-              {plant.additives.rootStimulant.active
-                ? `${rootDaysRemaining} days remaining`
-                : `Start ${ROOT_STIMULANT_DEFAULT_DURATION}-day run`}
-            </ThemedText>
-          </View>
-          <Pressable
-            accessibilityRole="switch"
-            accessibilityState={{ checked: plant.additives.rootStimulant.active }}
-            onPress={() =>
-              onToggleRoot(!plant.additives.rootStimulant.active)
-            }
-            style={[
-              styles.toggle,
-              {
-                backgroundColor: plant.additives.rootStimulant.active ? palette.accent : palette.surfaceMuted,
-                borderColor: plant.additives.rootStimulant.active ? palette.accent : palette.border,
-              },
-            ]}>
-            <View
+      {allowsRoot ? (
+        <ThemedView style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerText}>
+              <ThemedText type="subtitle">Root Stimulant</ThemedText>
+              <ThemedText style={styles.subtle}>
+                {plant.additives.rootStimulant.active
+                  ? `${rootDaysRemaining} days remaining`
+                  : `Start ${ROOT_STIMULANT_DEFAULT_DURATION}-day run`}
+              </ThemedText>
+            </View>
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityState={{ checked: plant.additives.rootStimulant.active }}
+              onPress={() => onToggleRoot(!plant.additives.rootStimulant.active)}
               style={[
-                styles.knob,
-                { backgroundColor: colorScheme === 'light' ? '#fff' : palette.surface },
-                plant.additives.rootStimulant.active && styles.knobActive,
-              ]}
-            />
-          </Pressable>
-        </View>
-        <ThemedText style={styles.helperText}>
-          Keeps roots happy after transplant. Automatically counts down a {ROOT_STIMULANT_DEFAULT_DURATION}-day cycle.
-        </ThemedText>
-        <View style={styles.doseTable}>
-          <View style={styles.doseRow}>
-            <View style={styles.doseLabel}>
-              <ThemedText type="defaultSemiBold" style={styles.doseName}>
-                {rootActive ? 'Current dosage' : 'Recommended dosage'}
-              </ThemedText>
-              <ThemedText style={styles.dosePerLiter}>{formatMl(rootMlPerLiter)} per L</ThemedText>
-            </View>
-            <ThemedText type="title" style={[styles.doseAmount, !rootActive && styles.doseAmountMuted]}>
-              {formatMl(rootTotal)}
-            </ThemedText>
+                styles.toggle,
+                {
+                  backgroundColor: plant.additives.rootStimulant.active ? palette.accent : palette.surfaceMuted,
+                  borderColor: plant.additives.rootStimulant.active ? palette.accent : palette.border,
+                },
+              ]}>
+              <View
+                style={[
+                  styles.knob,
+                  { backgroundColor: colorScheme === 'light' ? '#fff' : palette.surface },
+                  plant.additives.rootStimulant.active && styles.knobActive,
+                ]}
+              />
+            </Pressable>
           </View>
-        </View>
-        {!rootActive ? (
-          <ThemedText style={styles.helperMuted}>Toggle on to add it to your mix.</ThemedText>
-        ) : null}
-      </ThemedView>
-
-      <ThemedView style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}> 
-        <View style={styles.headerRow}>
-          <View style={styles.headerText}>
-            <ThemedText type="subtitle">Fulvic Acid</ThemedText>
-            <ThemedText style={styles.subtle}>
-              {plant.additives.fulvicAcid.active
-                ? 'Active until bloom stage'
-                : 'Enable after transplant for micronutrient uptake'}
-            </ThemedText>
-          </View>
-          <Pressable
-            accessibilityRole="switch"
-            accessibilityState={{ checked: plant.additives.fulvicAcid.active }}
-            onPress={() => onToggleFulvic(!plant.additives.fulvicAcid.active)}
-            style={[
-              styles.toggle,
-              {
-                backgroundColor: plant.additives.fulvicAcid.active ? palette.accent : palette.surfaceMuted,
-                borderColor: plant.additives.fulvicAcid.active ? palette.accent : palette.border,
-              },
-            ]}>
-            <View
-              style={[
-                styles.knob,
-                { backgroundColor: colorScheme === 'light' ? '#fff' : palette.surface },
-                plant.additives.fulvicAcid.active && styles.knobActive,
-              ]}
-            />
-          </Pressable>
-        </View>
-        <ThemedText style={styles.helperText}>
-          Use through vegetative growth. The app will automatically stop it once you enter full bloom.
-        </ThemedText>
-        <View style={styles.doseTable}>
-          <View style={styles.doseRow}>
-            <View style={styles.doseLabel}>
-              <ThemedText type="defaultSemiBold" style={styles.doseName}>
-                {fulvicActive ? 'Current dosage' : 'Recommended dosage'}
-              </ThemedText>
-              <ThemedText style={styles.dosePerLiter}>{formatMl(fulvicMlPerLiter)} per L</ThemedText>
-            </View>
-            <ThemedText type="title" style={[styles.doseAmount, !fulvicActive && styles.doseAmountMuted]}>
-              {formatMl(fulvicTotal)}
-            </ThemedText>
-          </View>
-        </View>
-        {!fulvicActive ? (
-          <ThemedText style={styles.helperMuted}>Enable to include it in the watering log.</ThemedText>
-        ) : null}
-      </ThemedView>
-
-      <ThemedView style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}> 
-        <View style={styles.headerRow}>
-          <View style={styles.headerText}>
-            <ThemedText type="subtitle">Bloom Stimulant</ThemedText>
-            <ThemedText style={styles.subtle}>
-              Recommended: {bloomRecommendation}%
-            </ThemedText>
-          </View>
-        </View>
-        <ThemedText style={styles.helperText}>
-          Start gently in preflower, ramp up through bloom, then taper for ripening. Adjust the slider to match canopy response.
-        </ThemedText>
-        <View style={styles.doseTable}>
-          <View style={styles.doseRow}>
-            <View style={styles.doseLabel}>
-              <ThemedText type="defaultSemiBold" style={styles.doseName}>
-                {bloomActive ? `${bloomIntensity}% intensity` : `${bloomRecommendation}% recommended`}
-              </ThemedText>
-              <ThemedText style={styles.dosePerLiter}>{formatMl(bloomMlPerLiter)} per L</ThemedText>
-            </View>
-            <ThemedText type="title" style={[styles.doseAmount, !bloomActive && styles.doseAmountMuted]}>
-              {formatMl(bloomTotal)}
-            </ThemedText>
-          </View>
-        </View>
-        <View style={styles.bloomRow}>
-          <Pressable
-            style={[styles.roundButton, { borderColor: palette.border, backgroundColor: palette.surfaceMuted }]}
-            onPress={() => onAdjustBloom(clamp(plant.additives.bloomBooster.intensity - 5, 0, 100))}>
-            <ThemedText type="default" lightColor={palette.primary} darkColor={palette.accent}>
-              -
-            </ThemedText>
-          </Pressable>
-          <ThemedText type="title" style={styles.bloomValue}>
-            {plant.additives.bloomBooster.intensity}%
+          <ThemedText style={styles.helperText}>
+            Keeps roots happy after transplant. Automatically counts down a {ROOT_STIMULANT_DEFAULT_DURATION}-day cycle.
           </ThemedText>
-          <Pressable
-            style={[styles.roundButton, { borderColor: palette.border, backgroundColor: palette.surfaceMuted }]}
-            onPress={() => onAdjustBloom(clamp(plant.additives.bloomBooster.intensity + 5, 0, 100))}>
-            <ThemedText type="default" lightColor={palette.primary} darkColor={palette.accent}>
-              +
+          <View style={styles.doseTable}>
+            <View style={styles.doseRow}>
+              <View style={styles.doseLabel}>
+                <ThemedText type="defaultSemiBold" style={styles.doseName}>
+                  {rootActive ? 'Current dosage' : 'Recommended dosage'}
+                </ThemedText>
+                <ThemedText style={styles.dosePerLiter}>{formatMl(rootMlPerLiter)} per L</ThemedText>
+              </View>
+              <ThemedText type="title" style={[styles.doseAmount, !rootActive && styles.doseAmountMuted]}>
+                {formatMl(rootTotal)}
+              </ThemedText>
+            </View>
+          </View>
+          {!rootActive ? (
+            <ThemedText style={styles.helperMuted}>Toggle on to add it to your mix.</ThemedText>
+          ) : null}
+        </ThemedView>
+      ) : null}
+
+      {allowsFulvic ? (
+        <ThemedView style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerText}>
+              <ThemedText type="subtitle">Fulvic Acid</ThemedText>
+              <ThemedText style={styles.subtle}>
+                {plant.additives.fulvicAcid.active
+                  ? 'Active until bloom stage'
+                  : 'Enable after transplant for micronutrient uptake'}
+              </ThemedText>
+            </View>
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityState={{ checked: plant.additives.fulvicAcid.active }}
+              onPress={() => onToggleFulvic(!plant.additives.fulvicAcid.active)}
+              style={[
+                styles.toggle,
+                {
+                  backgroundColor: plant.additives.fulvicAcid.active ? palette.accent : palette.surfaceMuted,
+                  borderColor: plant.additives.fulvicAcid.active ? palette.accent : palette.border,
+                },
+              ]}>
+              <View
+                style={[
+                  styles.knob,
+                  { backgroundColor: colorScheme === 'light' ? '#fff' : palette.surface },
+                  plant.additives.fulvicAcid.active && styles.knobActive,
+                ]}
+              />
+            </Pressable>
+          </View>
+          <ThemedText style={styles.helperText}>
+            Use through vegetative growth. The app will automatically stop it once you enter full bloom.
+          </ThemedText>
+          <View style={styles.doseTable}>
+            <View style={styles.doseRow}>
+              <View style={styles.doseLabel}>
+                <ThemedText type="defaultSemiBold" style={styles.doseName}>
+                  {fulvicActive ? 'Current dosage' : 'Recommended dosage'}
+                </ThemedText>
+                <ThemedText style={styles.dosePerLiter}>{formatMl(fulvicMlPerLiter)} per L</ThemedText>
+              </View>
+              <ThemedText type="title" style={[styles.doseAmount, !fulvicActive && styles.doseAmountMuted]}>
+                {formatMl(fulvicTotal)}
+              </ThemedText>
+            </View>
+          </View>
+          {!fulvicActive ? (
+            <ThemedText style={styles.helperMuted}>Enable to include it in the watering log.</ThemedText>
+          ) : null}
+        </ThemedView>
+      ) : null}
+
+      {allowsBloom ? (
+        <ThemedView style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerText}>
+              <ThemedText type="subtitle">Bloom Stimulant</ThemedText>
+              <ThemedText style={styles.subtle}>
+                Recommended: {bloomRecommendation}%
+              </ThemedText>
+            </View>
+          </View>
+          <ThemedText style={styles.helperText}>
+            Start gently in preflower, ramp up through bloom, then taper for ripening. Adjust the slider to match canopy response.
+          </ThemedText>
+          <View style={styles.doseTable}>
+            <View style={styles.doseRow}>
+              <View style={styles.doseLabel}>
+                <ThemedText type="defaultSemiBold" style={styles.doseName}>
+                  {bloomActive ? `${bloomIntensity}% intensity` : `${bloomRecommendation}% recommended`}
+                </ThemedText>
+                <ThemedText style={styles.dosePerLiter}>{formatMl(bloomMlPerLiter)} per L</ThemedText>
+              </View>
+              <ThemedText type="title" style={[styles.doseAmount, !bloomActive && styles.doseAmountMuted]}>
+                {formatMl(bloomTotal)}
+              </ThemedText>
+            </View>
+          </View>
+          <View style={styles.bloomRow}>
+            <Pressable
+              style={[styles.roundButton, { borderColor: palette.border, backgroundColor: palette.surfaceMuted }]}
+              onPress={() => onAdjustBloom(clamp(plant.additives.bloomBooster.intensity - 5, 0, 100))}>
+              <ThemedText type="default" lightColor={palette.primary} darkColor={palette.accent}>
+                -
+              </ThemedText>
+            </Pressable>
+            <ThemedText type="title" style={styles.bloomValue}>
+              {plant.additives.bloomBooster.intensity}%
             </ThemedText>
-          </Pressable>
-        </View>
-      </ThemedView>
+            <Pressable
+              style={[styles.roundButton, { borderColor: palette.border, backgroundColor: palette.surfaceMuted }]}
+              onPress={() => onAdjustBloom(clamp(plant.additives.bloomBooster.intensity + 5, 0, 100))}>
+              <ThemedText type="default" lightColor={palette.primary} darkColor={palette.accent}>
+                +
+              </ThemedText>
+            </Pressable>
+          </View>
+        </ThemedView>
+      ) : null}
     </View>
   );
 };
