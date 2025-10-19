@@ -1,23 +1,23 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ConfirmationDialog } from '@/components/confirmation-dialog';
-import { AdditiveCard } from '@/components/additive-card';
-import { FertilizerSummary } from '@/components/fertilizer-summary';
-import { NumberInput } from '@/components/number-input';
 import { PlantSelector } from '@/components/plant-selector';
-import { StagePicker } from '@/components/stage-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WateringHistory } from '@/components/watering-history';
-import { BLOOM_BOOSTER_RECOMMENDATIONS } from '@/constants/feeding';
+import { HistoryMenuDialog } from '@/components/watering-history/history-menu-dialog';
+import { HistoryOverview } from '@/components/watering-history/history-overview';
+import { HistoryTabs, HistoryTabId } from '@/components/watering-history/history-tabs';
+import { RenameDialog } from '@/components/watering-history/rename-dialog';
+import { TabPlaceholder } from '@/components/watering-history/tab-placeholder';
+import { WateringLogForm } from '@/components/watering-history/watering-log-form';
 import { Colors } from '@/constants/theme';
 import { usePlants } from '@/context/PlantContext';
 import { FeedingStageId, PlantState, WateringLogEntry } from '@/types/plant';
 import { DEFAULT_FORM_EC, DEFAULT_FORM_PH, useWateringForm } from '@/hooks/useWateringForm';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { AdditiveDoseSummary, calculateAdditiveDoses, calculateFertilizerDoses, formatMl } from '@/utils/feeding';
+import { AdditiveDoseSummary, calculateAdditiveDoses, calculateFertilizerDoses } from '@/utils/feeding';
 
 export default function HomeScreen() {
   const {
@@ -48,6 +48,7 @@ export default function HomeScreen() {
   const [pendingRename, setPendingRename] = useState<PlantState | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [historyMenuOpen, setHistoryMenuOpen] = useState(false);
+  const [activeHistoryTab, setActiveHistoryTab] = useState<HistoryTabId>('history');
 
   useEffect(() => {
     if (!selectedId && activePlants.length > 0) {
@@ -290,6 +291,61 @@ export default function HomeScreen() {
     setEditingLog(null);
   };
 
+  const handleToggleRootAdditive = useCallback(
+    (next: boolean) => {
+      if (!plant) return;
+      updatePlant(plant.id, prev => ({
+        ...prev,
+        additives: {
+          ...prev.additives,
+          rootStimulant: {
+            ...prev.additives.rootStimulant,
+            active: next,
+            startDate: next ? new Date().toISOString() : undefined,
+          },
+        },
+      }));
+    },
+    [plant, updatePlant]
+  );
+
+  const handleToggleFulvicAdditive = useCallback(
+    (next: boolean) => {
+      if (!plant) return;
+      updatePlant(plant.id, prev => ({
+        ...prev,
+        additives: {
+          ...prev.additives,
+          fulvicAcid: {
+            ...prev.additives.fulvicAcid,
+            active: next,
+            startedAt: next ? new Date().toISOString() : undefined,
+          },
+        },
+      }));
+    },
+    [plant, updatePlant]
+  );
+
+  const handleAdjustBloomAdditive = useCallback(
+    (intensity: number) => {
+      if (!plant) return;
+      updatePlant(plant.id, prev => ({
+        ...prev,
+        additives: {
+          ...prev.additives,
+          bloomBooster: {
+            ...prev.additives.bloomBooster,
+            active: intensity > 0,
+            intensity,
+            lastAdjustedAt: new Date().toISOString(),
+          },
+        },
+      }));
+    },
+    [plant, updatePlant]
+  );
+
   const confirmationDialogs = (
     <>
       <ConfirmationDialog
@@ -383,237 +439,72 @@ export default function HomeScreen() {
             onAddPlant={() => addPlant()}
           />
           {isLogging ? (
-        <ScrollView contentContainerStyle={[styles.scroll, isCompact && styles.scrollCompact]}>
-          {isEditing && editingLog ? (
-            <ThemedText style={[styles.editingBanner, { backgroundColor: palette.accentSoft, color: palette.accent }]}>
-              Editing log from {new Date(editingLog.createdAt).toLocaleDateString()} at{' '}
-              {new Date(editingLog.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </ThemedText>
-          ) : null}
-          <View style={styles.section}>
-            <StagePicker value={formStage} onChange={handleStageChange} />
-            <NumberInput
-              label="Strength"
-              unit="%"
-              value={formStrength}
-              minimum={40}
-              maximum={110}
-              step={5}
-              onChange={handleStrengthChange}
+            <WateringLogForm
+              draftPlant={draftPlant}
+              isCompact={isCompact}
+              colorScheme={colorScheme}
+              palette={palette}
+              editingLog={editingLog}
+              formStage={formStage}
+              formStrength={formStrength}
+              formWater={formWater}
+              formPh={formPh}
+              formEc={formEc}
+              liters={liters}
+              doses={doses}
+              additiveDoses={additiveDoses}
+              totalMl={totalMl}
+              isEditing={isEditing}
+              onStageChange={handleStageChange}
+              onStrengthChange={handleStrengthChange}
+              onWaterChange={handleWaterChange}
+              onPhChange={setFormPh}
+              onEcChange={setFormEc}
+              onToggleRoot={handleToggleRootAdditive}
+              onToggleFulvic={handleToggleFulvicAdditive}
+              onAdjustBloom={handleAdjustBloomAdditive}
+              onSubmit={handleSubmitLog}
+              onCancel={handleCancelLogging}
             />
-            <NumberInput
-              label="Water volume"
-              unit="L"
-              value={formWater}
-              minimum={0.5}
-              step={0.5}
-              onChange={handleWaterChange}
-            />
-            <ThemedText style={[styles.helperCopy, { color: palette.muted }]}>
-              The strength slider multiplies the base feeding chart. 100% equals the published Terra Aquatica schedule.
-            </ThemedText>
-          </View>
-
-          <FertilizerSummary doses={doses} waterLiters={liters} />
-
-          {draftPlant ? (
-            <AdditiveCard
-              plant={draftPlant}
-              doses={additiveDoses}
-              waterLiters={liters}
-              onToggleRoot={next =>
-                updatePlant(plant.id, prev => ({
-                  ...prev,
-                  additives: {
-                    ...prev.additives,
-                    rootStimulant: {
-                      ...prev.additives.rootStimulant,
-                      active: next,
-                      startDate: next ? new Date().toISOString() : undefined,
-                    },
-                  },
-                }))
-              }
-              onToggleFulvic={next =>
-                updatePlant(plant.id, prev => ({
-                  ...prev,
-                  additives: {
-                    ...prev.additives,
-                    fulvicAcid: {
-                      ...prev.additives.fulvicAcid,
-                      active: next,
-                      startedAt: next ? new Date().toISOString() : undefined,
-                    },
-                  },
-                }))
-              }
-              onAdjustBloom={intensity =>
-                updatePlant(plant.id, prev => ({
-                  ...prev,
-                  additives: {
-                    ...prev.additives,
-                    bloomBooster: {
-                      ...prev.additives.bloomBooster,
-                      active: intensity > 0,
-                      intensity,
-                      lastAdjustedAt: new Date().toISOString(),
-                    },
-                  },
-                }))
-              }
-            />
-          ) : null}
-
-          <ThemedView
-            style={[styles.tipCard, { backgroundColor: palette.primarySoft, borderColor: palette.primary }]}
-            lightColor={palette.primarySoft}
-            darkColor={palette.primarySoft}>
-            <ThemedText type="subtitle">Bloom game plan</ThemedText>
-            <ThemedText style={[styles.tipCopy, { color: palette.primary }]}>
-              Suggested bloom stimulant intensity for {formStage} is {BLOOM_BOOSTER_RECOMMENDATIONS[formStage]}%. Keep an eye on leaf tips—dial back 5% if you see light burn, or add 5%
-              when plants are hungry.
-            </ThemedText>
-          </ThemedView>
-
-          <View style={[styles.section, styles.measureSection]}>
-            <NumberInput
-              label="pH"
-              value={formPh}
-              minimum={0}
-              maximum={14}
-              step={0.1}
-              onChange={setFormPh}
-            />
-            <NumberInput
-              label="EC"
-              unit="mS/cm"
-              value={formEc}
-              minimum={0}
-              step={0.1}
-              onChange={setFormEc}
-            />
-          </View>
-
-          <Pressable
-            style={[
-              styles.logButton,
-              {
-                backgroundColor: palette.accent,
-                shadowColor: palette.accent,
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: colorScheme === 'light' ? 0.25 : 0.4,
-                shadowRadius: 12,
-                elevation: 4,
-              },
-              isCompact && styles.logButtonCompact,
-            ]}
-            onPress={handleSubmitLog}
-            accessibilityRole="button">
-            <ThemedText
-              type={isCompact ? 'defaultSemiBold' : 'title'}
-              lightColor="#FFFFFF"
-              darkColor={Colors.dark.background}
-              style={[styles.logButtonLabel, isCompact && styles.logButtonLabelCompact]}>
-              {isEditing ? 'Save changes' : 'Log watering'} ({liters} L · {formStrength}% · {formatMl(totalMl)} nutrients)
-            </ThemedText>
-          </Pressable>
-        </ScrollView>
-      ) : (
-        <ScrollView contentContainerStyle={[styles.historyScroll, isCompact && styles.historyScrollCompact]}>
-          <View style={[styles.historyHeader, isCompact && styles.historyHeaderCompact]}>
-            <ThemedText type={isCompact ? 'defaultSemiBold' : 'title'} style={isCompact && styles.historyTitleCompact}>
-              Watering history
-            </ThemedText>
-            <View style={[styles.historyActions, isCompact && styles.historyActionsCompact]}>
-              <Pressable
-                style={[
-                  styles.addLogButton,
-                  { borderColor: palette.accent, backgroundColor: palette.accentSoft },
-                  isCompact && styles.addLogButtonCompact,
-                ]}
-                onPress={handleStartLogging}
-                accessibilityRole="button">
-                <ThemedText
-                  type="defaultSemiBold"
-                  style={[styles.addLogLabel, { color: palette.accent }, isCompact && styles.addLogLabelCompact]}>
-                  + Log watering
-                </ThemedText>
-              </Pressable>
-              <Pressable
-                style={[styles.menuButton, { borderColor: palette.border, backgroundColor: palette.surface }, isCompact && styles.menuButtonCompact]}
-                onPress={openHistoryMenu}
-                accessibilityRole="button"
-                accessibilityLabel={`Open actions for ${plant.name}`}>
-                <ThemedText
-                  type={isCompact ? 'defaultSemiBold' : 'title'}
-                  style={[styles.menuLabel, { color: palette.accent }, isCompact && styles.menuLabelCompact]}>
-                  ⋯
-                </ThemedText>
-              </Pressable>
-            </View>
-          </View>
-          <WateringHistory logs={plant.logs} onEdit={handleEditLog} onDelete={handleDeleteLog} />
-        </ScrollView>
-      )}
+          ) : (
+            <ScrollView contentContainerStyle={[styles.historyScroll, isCompact && styles.historyScrollCompact]}>
+              <HistoryTabs activeTab={activeHistoryTab} onSelect={setActiveHistoryTab} palette={palette} isCompact={isCompact} />
+              {activeHistoryTab === 'history' ? (
+                <HistoryOverview
+                  plant={plant}
+                  palette={palette}
+                  isCompact={isCompact}
+                  onStartLogging={handleStartLogging}
+                  onOpenMenu={openHistoryMenu}
+                  onEditLog={handleEditLog}
+                  onDeleteLog={handleDeleteLog}
+                />
+              ) : (
+                <TabPlaceholder palette={palette} isCharts={activeHistoryTab === 'charts'} />
+              )}
+            </ScrollView>
+          )}
         </ThemedView>
       </SafeAreaView>
-      <ConfirmationDialog
+      <HistoryMenuDialog
         visible={historyMenuOpen}
-        title={`${plant.name} options`}
-        confirmLabel="Close"
-        onCancel={closeHistoryMenu}
-        onConfirm={closeHistoryMenu}>
-        <View style={styles.menuList}>
-          <Pressable
-            style={[styles.menuItem, { borderColor: palette.border, backgroundColor: palette.surface }]}
-            onPress={handleRenamePlant}
-            accessibilityRole="button"
-            accessibilityLabel={`Rename ${plant.name}`}>
-            <ThemedText type="defaultSemiBold" style={styles.menuItemLabel}>
-              Rename plant
-            </ThemedText>
-          </Pressable>
-          <Pressable
-            style={[styles.menuItem, { borderColor: palette.border, backgroundColor: palette.surface }]}
-            onPress={handleArchivePlant}
-            accessibilityRole="button"
-            accessibilityLabel={`Archive ${plant.name}`}>
-            <ThemedText type="defaultSemiBold" style={styles.menuItemLabel}>
-              Archive plant
-            </ThemedText>
-          </Pressable>
-          <Pressable
-            style={[styles.menuItem, { borderColor: palette.border, backgroundColor: palette.surface }]}
-            onPress={() => requestDeletePlant(plant)}
-            accessibilityRole="button"
-            accessibilityLabel={`Delete ${plant.name}`}>
-            <ThemedText
-              type="defaultSemiBold"
-              style={[styles.menuItemLabel, { color: palette.danger }]}>
-              Delete plant
-            </ThemedText>
-          </Pressable>
-        </View>
-      </ConfirmationDialog>
-      <ConfirmationDialog
+        palette={palette}
+        plant={plant}
+        onClose={closeHistoryMenu}
+        onRename={handleRenamePlant}
+        onArchive={handleArchivePlant}
+        onDelete={() => requestDeletePlant(plant)}
+      />
+      <RenameDialog
         visible={Boolean(pendingRename)}
-        title="Rename plant"
-        message={pendingRename ? `Give ${pendingRename.name} a new name.` : 'Rename this plant.'}
-        confirmLabel="Save"
-        confirmDisabled={!renameValue.trim()}
+        palette={palette}
+        colorScheme={colorScheme}
+        pendingRename={pendingRename}
+        renameValue={renameValue}
+        onChange={setRenameValue}
         onCancel={handleCancelRename}
-        onConfirm={handleConfirmRename}>
-        <TextInput
-          style={[styles.renameInput, { borderColor: palette.border, backgroundColor: palette.surface, color: palette.text }]}
-          value={renameValue}
-          onChangeText={setRenameValue}
-          placeholder="New plant name"
-          placeholderTextColor={colorScheme === 'light' ? 'rgba(15, 52, 69, 0.35)' : 'rgba(228, 243, 250, 0.45)'}
-          autoFocus
-          returnKeyType="done"
-          onSubmitEditing={handleConfirmRename}
-        />
-      </ConfirmationDialog>
+        onConfirm={handleConfirmRename}
+      />
 
       {confirmationDialogs}
     </>
@@ -632,12 +523,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  scroll: {
-    paddingHorizontal: 16,
-    paddingBottom: 120,
-  },
-  scrollCompact: {
-    paddingBottom: 80,
+  emptyState: {
+    marginTop: 48,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
   },
   historyScroll: {
     paddingHorizontal: 16,
@@ -647,157 +539,5 @@ const styles = StyleSheet.create({
   },
   historyScrollCompact: {
     paddingBottom: 32,
-  },
-  section: {
-    marginTop: 12,
-    gap: 8,
-  },
-  measureSection: {
-    marginTop: 24,
-  },
-  helperCopy: {
-    opacity: 0.7,
-    marginTop: 4,
-    fontSize: 12,
-  },
-  tipCard: {
-    marginTop: 24,
-    borderRadius: 18,
-    padding: 16,
-    gap: 8,
-    borderWidth: 1,
-  },
-  tipCopy: {
-    opacity: 0.85,
-    fontSize: 13,
-  },
-  logActions: {
-    marginTop: 24,
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  logActionsCompact: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-  },
-  cancelButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    flexShrink: 0,
-  },
-  cancelButtonCompact: {
-    width: '100%',
-  },
-  logButton: {
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    flex: 1,
-  },
-  logButtonCompact: {
-    paddingVertical: 12,
-    borderRadius: 16,
-    width: '100%',
-  },
-  logButtonLabel: {
-    textAlign: 'center',
-  },
-  logButtonLabelCompact: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  historyHeaderCompact: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  historyTitleCompact: {
-    fontSize: 20,
-    lineHeight: 24,
-  },
-  historyActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  historyActionsCompact: {
-    width: '100%',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  addLogButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  addLogButtonCompact: {
-    flex: 1,
-  },
-  addLogLabel: {
-    fontSize: 14,
-  },
-  addLogLabelCompact: {
-    textAlign: 'center',
-  },
-  menuButton: {
-    width: 42,
-    height: 38,
-    borderRadius: 999,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuButtonCompact: {
-    width: 36,
-    height: 36,
-  },
-  menuLabel: {
-    marginTop: -4,
-  },
-  menuLabelCompact: {
-    marginTop: 0,
-  },
-  emptyState: {
-    marginTop: 48,
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-  },
-  editingBanner: {
-    marginTop: 12,
-    marginBottom: 8,
-    padding: 12,
-    borderRadius: 12,
-    fontSize: 13,
-  },
-  renameInput: {
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-  menuList: {
-    gap: 8,
-  },
-  menuItem: {
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-  },
-  menuItemLabel: {
-    fontSize: 14,
   },
 });
