@@ -1,4 +1,11 @@
-import { BLOOM_BOOSTER_MAX_ML_PER_L, FEEDING_STAGE_LOOKUP, FERTILIZER_LABELS, ROOT_STIMULANT_DEFAULT_DOSAGE, FULVIC_ACID_DEFAULT_DOSAGE } from '@/constants/feeding';
+import {
+  BLOOM_BOOSTER_MAX_ML_PER_L,
+  FEEDING_STAGE_LOOKUP,
+  FERTILIZER_LABELS,
+  ROOT_STIMULANT_DEFAULT_DOSAGE,
+  FULVIC_ACID_DEFAULT_INTENSITY,
+  FULVIC_ACID_MAX_ML_PER_L,
+} from '@/constants/feeding';
 import { FertilizerId, PlantState, LoggedAdditiveDose, LoggedBloomBoosterDose } from '@/types/plant';
 
 export interface FertilizerDose {
@@ -45,7 +52,8 @@ export function formatMl(value: number): string {
 
 export function calculateAdditiveDoses(plant: PlantState, waterLiters: number): AdditiveDoseSummary {
   const rootMlPerLiter = plant.additives.rootStimulant.dosageMlPerLiter ?? ROOT_STIMULANT_DEFAULT_DOSAGE;
-  const fulvicMlPerLiter = plant.additives.fulvicAcid.dosageMlPerLiter ?? FULVIC_ACID_DEFAULT_DOSAGE;
+  const fulvicIntensity = plant.additives.fulvicAcid.intensity ?? FULVIC_ACID_DEFAULT_INTENSITY;
+  const fulvicMlPerLiter = (fulvicIntensity / 100) * FULVIC_ACID_MAX_ML_PER_L;
   const bloomMlPerLiter = (plant.additives.bloomBooster.intensity / 100) * BLOOM_BOOSTER_MAX_ML_PER_L;
   const stageId = plant.stageId;
   const allowsRoot = stageId === 'seedling' || stageId === 'earlyGrow' || stageId === 'grow';
@@ -63,6 +71,7 @@ export function calculateAdditiveDoses(plant: PlantState, waterLiters: number): 
 
   if (allowsFulvic && plant.additives.fulvicAcid.active) {
     summary.fulvicAcid = {
+      intensity: Number(fulvicIntensity.toFixed(2)),
       mlPerLiter: Number(fulvicMlPerLiter.toFixed(2)),
       totalMl: Number((fulvicMlPerLiter * waterLiters).toFixed(2)),
     };

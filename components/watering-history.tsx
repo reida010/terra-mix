@@ -146,8 +146,11 @@ export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, 
                 ) : null}
                 {additives.fulvicAcid ? (
                   <ThemedText style={[styles.additiveCopy, { color: palette.muted }]}>
-                    Fulvic acid: {formatMl(additives.fulvicAcid.mlPerLiter)} per L ·{' '}
-                    {formatMl(additives.fulvicAcid.totalMl)} total
+                    Fulvic acid:{' '}
+                    {typeof additives.fulvicAcid.intensity === 'number'
+                      ? `${additives.fulvicAcid.intensity.toLocaleString(undefined, { maximumFractionDigits: 2 })}% → `
+                      : ''}
+                    {formatMl(additives.fulvicAcid.mlPerLiter)} per L · {formatMl(additives.fulvicAcid.totalMl)} total
                   </ThemedText>
                 ) : null}
                 {additives.bloomBooster ? (

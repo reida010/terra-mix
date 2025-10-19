@@ -10,10 +10,10 @@ import { HistoryOverview } from '@/components/watering-history/history-overview'
 import { HistoryCharts } from '@/components/watering-history/history-charts';
 import { HistoryTabs, HistoryTabId } from '@/components/watering-history/history-tabs';
 import { RenameDialog } from '@/components/watering-history/rename-dialog';
-import { TabPlaceholder } from '@/components/watering-history/tab-placeholder';
 import { PlantInfo } from '@/components/watering-history/plant-info';
 import { WateringLogForm } from '@/components/watering-history/watering-log-form';
 import { Colors } from '@/constants/theme';
+import { FULVIC_ACID_DEFAULT_INTENSITY } from '@/constants/feeding';
 import { usePlants } from '@/context/PlantContext';
 import { FeedingStageId, PlantState, WateringLogEntry } from '@/types/plant';
 import { DEFAULT_FORM_EC, DEFAULT_FORM_PH, useWateringForm } from '@/hooks/useWateringForm';
@@ -300,32 +300,43 @@ export default function HomeScreen() {
   const handleToggleFulvicAdditive = useCallback(
     (next: boolean) => {
       if (!plant) return;
-      updatePlant(plant.id, prev => ({
-        ...prev,
-        additives: {
-          ...prev.additives,
-          fulvicAcid: {
-            ...prev.additives.fulvicAcid,
-            active: next,
-            startedAt: next ? new Date().toISOString() : undefined,
+      updatePlant(plant.id, prev => {
+        const previousIntensity = prev.additives.fulvicAcid.intensity;
+        const hasIntensity = Number.isFinite(previousIntensity);
+        const normalizedIntensity = hasIntensity
+          ? (previousIntensity as number)
+          : FULVIC_ACID_DEFAULT_INTENSITY;
+
+        return {
+          ...prev,
+          additives: {
+            ...prev.additives,
+            fulvicAcid: {
+              ...prev.additives.fulvicAcid,
+              active: next,
+              startedAt: next ? new Date().toISOString() : undefined,
+              intensity: Number(
+                Math.min(Math.max(normalizedIntensity, 0), 100).toFixed(2)
+              ),
+            },
           },
-        },
-      }));
+        };
+      });
     },
     [plant, updatePlant]
   );
 
   const handleAdjustFulvicAdditive = useCallback(
-    (dosage: number) => {
+    (intensity: number) => {
       if (!plant) return;
-      const safeDosage = Math.min(Math.max(dosage, 0), 2);
+      const safeIntensity = Math.min(Math.max(intensity, 0), 100);
       updatePlant(plant.id, prev => ({
         ...prev,
         additives: {
           ...prev.additives,
           fulvicAcid: {
             ...prev.additives.fulvicAcid,
-            dosageMlPerLiter: Number(safeDosage.toFixed(2)),
+            intensity: Number(safeIntensity.toFixed(2)),
           },
         },
       }));

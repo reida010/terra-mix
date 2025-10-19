@@ -4,7 +4,8 @@ import {
   BLOOM_BOOSTER_RECOMMENDATIONS,
   FEEDING_STAGE_LOOKUP,
   FEEDING_STAGES,
-  FULVIC_ACID_DEFAULT_DOSAGE,
+  FULVIC_ACID_DEFAULT_INTENSITY,
+  FULVIC_ACID_MAX_ML_PER_L,
   INITIAL_PLANT_NAMES,
   ROOT_STIMULANT_DEFAULT_DOSAGE,
   ROOT_STIMULANT_DEFAULT_DURATION,
@@ -25,13 +26,53 @@ const createInitialAdditives = (): AdditivesState => ({
   },
   fulvicAcid: {
     active: false,
-    dosageMlPerLiter: FULVIC_ACID_DEFAULT_DOSAGE,
+    intensity: FULVIC_ACID_DEFAULT_INTENSITY,
   },
   bloomBooster: {
     active: false,
     intensity: 0,
   },
 });
+
+const normalizeFulvicState = (
+  state: AdditivesState['fulvicAcid'] | undefined,
+  shouldDisable: boolean
+): AdditivesState['fulvicAcid'] => {
+  const legacyDosageRaw = (state as unknown as { dosageMlPerLiter?: unknown })?.dosageMlPerLiter;
+  const legacyDosage =
+    typeof legacyDosageRaw === 'number'
+      ? legacyDosageRaw
+      : typeof legacyDosageRaw === 'string'
+      ? Number.parseFloat(legacyDosageRaw)
+      : undefined;
+
+  const rawIntensity =
+    typeof state?.intensity === 'number'
+      ? state.intensity
+      : typeof state?.intensity === 'string'
+      ? Number.parseFloat(state.intensity)
+      : undefined;
+
+  let normalizedIntensity = Number.isFinite(rawIntensity) ? Number(rawIntensity) : undefined;
+
+  if (normalizedIntensity === undefined && Number.isFinite(legacyDosage)) {
+    normalizedIntensity = (legacyDosage as number / FULVIC_ACID_MAX_ML_PER_L) * 100;
+  }
+
+  if (!Number.isFinite(normalizedIntensity)) {
+    normalizedIntensity = FULVIC_ACID_DEFAULT_INTENSITY;
+  }
+
+  const clampedIntensity = Number(
+    Math.min(Math.max(normalizedIntensity ?? FULVIC_ACID_DEFAULT_INTENSITY, 0), 100).toFixed(2)
+  );
+
+  return {
+    active: shouldDisable ? false : Boolean(state?.active),
+    startedAt: shouldDisable ? undefined : state?.startedAt,
+    intensity: clampedIntensity,
+  };
+};
 
 const normalizePlant = (plant: PlantState): PlantState => {
   const stage = FEEDING_STAGE_LOOKUP[plant.stageId];
@@ -79,13 +120,7 @@ const normalizePlant = (plant: PlantState): PlantState => {
       active: nextBloomActive,
       intensity: nextBloomIntensity,
     },
-    fulvicAcid: {
-      ...plant.additives.fulvicAcid,
-      active: shouldDisableFulvic ? false : plant.additives.fulvicAcid.active,
-      startedAt: shouldDisableFulvic ? undefined : plant.additives.fulvicAcid.startedAt,
-      dosageMlPerLiter:
-        plant.additives.fulvicAcid.dosageMlPerLiter ?? FULVIC_ACID_DEFAULT_DOSAGE,
-    },
+    fulvicAcid: normalizeFulvicState(plant.additives.fulvicAcid, shouldDisableFulvic),
   };
 
   const logs: WateringLogEntry[] = Array.isArray(plant.logs)

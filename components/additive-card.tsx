@@ -9,7 +9,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   BLOOM_BOOSTER_RECOMMENDATIONS,
   BLOOM_BOOSTER_MAX_ML_PER_L,
-  FULVIC_ACID_DEFAULT_DOSAGE,
+  FULVIC_ACID_DEFAULT_INTENSITY,
+  FULVIC_ACID_MAX_ML_PER_L,
   ROOT_STIMULANT_DEFAULT_DURATION,
   ROOT_STIMULANT_DEFAULT_DOSAGE,
 } from '@/constants/feeding';
@@ -63,12 +64,20 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({
     ? rootDose?.totalMl ?? rootMlPerLiter * liters
     : rootDefault * liters;
 
-  const fulvicDefault = plant.additives.fulvicAcid.dosageMlPerLiter ?? FULVIC_ACID_DEFAULT_DOSAGE;
+  const fulvicStoredIntensity = plant.additives.fulvicAcid.intensity ?? FULVIC_ACID_DEFAULT_INTENSITY;
   const fulvicActive = plant.additives.fulvicAcid.active;
-  const fulvicMlPerLiter = fulvicActive ? fulvicDose?.mlPerLiter ?? fulvicDefault : fulvicDefault;
+  const activeFulvicIntensity = fulvicDose?.intensity ?? fulvicStoredIntensity;
+  const fulvicIntensityDisplay = fulvicActive ? activeFulvicIntensity : fulvicStoredIntensity;
+  const inactiveFulvicMlPerLiter = (fulvicStoredIntensity / 100) * FULVIC_ACID_MAX_ML_PER_L;
+  const fulvicMlPerLiter = fulvicActive
+    ? fulvicDose?.mlPerLiter ?? (activeFulvicIntensity / 100) * FULVIC_ACID_MAX_ML_PER_L
+    : inactiveFulvicMlPerLiter;
   const fulvicTotal = fulvicActive
     ? fulvicDose?.totalMl ?? fulvicMlPerLiter * liters
-    : fulvicDefault * liters;
+    : inactiveFulvicMlPerLiter * liters;
+  const fulvicIntensityLabel = `${fulvicIntensityDisplay.toLocaleString(undefined, {
+    maximumFractionDigits: 2,
+  })}%`;
 
   const bloomIntensity = plant.additives.bloomBooster.intensity;
   const bloomActive = plant.additives.bloomBooster.active || bloomIntensity > 0;
@@ -173,9 +182,11 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({
             <View style={styles.doseRow}>
               <View style={styles.doseLabel}>
                 <ThemedText type="defaultSemiBold" style={styles.doseName}>
-                  {fulvicActive ? 'Current dosage' : 'Recommended dosage'}
+                  {fulvicActive ? 'Current intensity' : 'Recommended intensity'}
                 </ThemedText>
-                <ThemedText style={styles.dosePerLiter}>{formatMl(fulvicMlPerLiter)} per L</ThemedText>
+                <ThemedText style={styles.dosePerLiter}>
+                  {fulvicIntensityLabel} → {formatMl(fulvicMlPerLiter)} per L
+                </ThemedText>
               </View>
               <ThemedText type="title" style={[styles.doseAmount, !fulvicActive && styles.doseAmountMuted]}>
                 {formatMl(fulvicTotal)}
@@ -183,12 +194,12 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({
             </View>
           </View>
           <NumberInput
-            label="Dosage"
-            unit="ml/L"
-            value={plant.additives.fulvicAcid.dosageMlPerLiter ?? FULVIC_ACID_DEFAULT_DOSAGE}
+            label="Intensity"
+            unit="%"
+            value={fulvicStoredIntensity}
             minimum={0}
-            maximum={2}
-            step={0.05}
+            maximum={100}
+            step={5}
             onChange={onAdjustFulvic}
           />
           {!fulvicActive ? (
