@@ -11,7 +11,6 @@ interface HistoryOverviewProps {
   palette: typeof Colors.light;
   isCompact: boolean;
   onStartLogging: () => void;
-  onOpenMenu: () => void;
   onEditLog: (log: WateringLogEntry) => void;
   onDeleteLog: (log: WateringLogEntry) => void;
 }
@@ -21,7 +20,6 @@ export function HistoryOverview({
   palette,
   isCompact,
   onStartLogging,
-  onOpenMenu,
   onEditLog,
   onDeleteLog,
 }: HistoryOverviewProps) {
@@ -44,21 +42,6 @@ export function HistoryOverview({
               type="defaultSemiBold"
               style={[styles.addLogLabel, { color: palette.accent }, isCompact && styles.addLogLabelCompact]}>
               + Log watering
-            </ThemedText>
-          </Pressable>
-          <Pressable
-            style={[
-              styles.menuButton,
-              { borderColor: palette.border, backgroundColor: palette.surface },
-              isCompact && styles.menuButtonCompact,
-            ]}
-            onPress={onOpenMenu}
-            accessibilityRole="button"
-            accessibilityLabel={`Open actions for ${plant.name}`}>
-            <ThemedText
-              type={isCompact ? 'defaultSemiBold' : 'title'}
-              style={[styles.menuLabel, { color: palette.accent }, isCompact && styles.menuLabelCompact]}>
-              ⋯
             </ThemedText>
           </Pressable>
         </View>
@@ -90,10 +73,7 @@ const styles = StyleSheet.create({
   },
   actionsCompact: {
     width: '100%',
-    justifyContent: 'space-between',
     alignItems: 'stretch',
-    flexDirection: 'column',
-    gap: 8,
   },
   addLogButton: {
     paddingHorizontal: 16,
@@ -109,23 +89,5 @@ const styles = StyleSheet.create({
   },
   addLogLabelCompact: {
     textAlign: 'center',
-  },
-  menuButton: {
-    width: 42,
-    height: 38,
-    borderRadius: 999,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuButtonCompact: {
-    width: 36,
-    height: 36,
-  },
-  menuLabel: {
-    marginTop: -4,
-  },
-  menuLabelCompact: {
-    marginTop: 0,
   },
 });
