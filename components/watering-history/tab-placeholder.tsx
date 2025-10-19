@@ -7,21 +7,21 @@ import { Colors } from '@/constants/theme';
 
 interface TabPlaceholderProps {
   palette: typeof Colors.light;
-  isCharts: boolean;
+  title?: string;
+  description?: string;
 }
 
-export function TabPlaceholder({ palette, isCharts }: TabPlaceholderProps) {
+export function TabPlaceholder({ palette, title, description }: TabPlaceholderProps) {
+  const heading = title ?? 'Plant info coming soon';
+  const body =
+    description ?? 'Detailed plant profiles will live here. Hang tight!';
   return (
     <ThemedView
       style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.border }]}
       lightColor={palette.surface}
       darkColor={palette.surface}>
-      <ThemedText type="title">{isCharts ? 'Charts coming soon' : 'Plant info coming soon'}</ThemedText>
-      <ThemedText style={[styles.copy, { color: palette.muted }]}>
-        {isCharts
-          ? 'Visualize trends, watering cadence, and nutrient insights here soon.'
-          : 'Detailed plant profiles will live here. Hang tight!'}
-      </ThemedText>
+      <ThemedText type="title">{heading}</ThemedText>
+      {body ? <ThemedText style={[styles.copy, { color: palette.muted }]}>{body}</ThemedText> : null}
     </ThemedView>
   );
 }
