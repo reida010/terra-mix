@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -26,13 +27,16 @@ export const StagePicker: React.FC<StagePickerProps> = ({ value, onChange }) => 
         style={[styles.button, { borderColor: palette.border, backgroundColor: palette.surface }]}
         onPress={() => setVisible(true)}
         accessibilityRole="button">
-        <View>
-          <ThemedText type="subtitle" style={styles.buttonLabel}>
-            {selectedStage?.name ?? 'Select stage'}
-          </ThemedText>
-          {selectedStage?.description ? (
-            <ThemedText style={[styles.buttonDescription, { color: palette.muted }]}>{selectedStage.description}</ThemedText>
-          ) : null}
+        <View style={styles.buttonContent}>
+          <View style={styles.buttonTextContainer}>
+            <ThemedText type="subtitle" style={styles.buttonLabel}>
+              {selectedStage?.name ?? 'Select stage'}
+            </ThemedText>
+            {selectedStage?.description ? (
+              <ThemedText style={[styles.buttonDescription, { color: palette.muted }]}>{selectedStage.description}</ThemedText>
+            ) : null}
+          </View>
+          <MaterialIcons name="keyboard-arrow-down" size={24} color={palette.muted} accessible={false} />
         </View>
       </Pressable>
       <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
@@ -88,6 +92,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  buttonTextContainer: {
+    flex: 1,
   },
   buttonLabel: {
     textTransform: 'capitalize',
