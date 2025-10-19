@@ -219,6 +219,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   logActionsCompact: {
     flexDirection: 'column',
