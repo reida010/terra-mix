@@ -206,6 +206,11 @@ export default function HomeScreen() {
     setIsLogging(true);
   };
 
+  const handleCancelLogging = () => {
+    setEditingLog(null);
+    setIsLogging(false);
+  };
+
   const handleEditLog = (log: WateringLogEntry) => {
     setEditingLog(log);
     setIsLogging(true);
@@ -666,16 +671,37 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     fontSize: 13,
   },
-  logButton: {
+  logActions: {
     marginTop: 24,
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  logActionsCompact: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
+  cancelButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    flexShrink: 0,
+  },
+  cancelButtonCompact: {
+    width: '100%',
+  },
+  logButton: {
     borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 16,
     alignItems: 'center',
+    flex: 1,
   },
   logButtonCompact: {
     paddingVertical: 12,
     borderRadius: 16,
+    width: '100%',
   },
   logButtonLabel: {
     textAlign: 'center',
