@@ -109,14 +109,15 @@ const styles = StyleSheet.create({
   },
   itemContent: {
     padding: 14,
-    height: '100%',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 2,
   },
   itemContentCompact: {
     padding: 12,
+    alignItems: 'flex-start',
+    gap: 2,
   },
   name: {
-    marginBottom: 4,
     textTransform: 'capitalize',
   },
   nameCompact: {
