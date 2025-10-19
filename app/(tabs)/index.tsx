@@ -494,29 +494,46 @@ export default function HomeScreen() {
             />
           </View>
 
-          <Pressable
-            style={[
-              styles.logButton,
-              {
-                backgroundColor: palette.accent,
-                shadowColor: palette.accent,
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: colorScheme === 'light' ? 0.25 : 0.4,
-                shadowRadius: 12,
-                elevation: 4,
-              },
-              isCompact && styles.logButtonCompact,
-            ]}
-            onPress={handleSubmitLog}
-            accessibilityRole="button">
-            <ThemedText
-              type={isCompact ? 'defaultSemiBold' : 'title'}
-              lightColor="#FFFFFF"
-              darkColor={Colors.dark.background}
-              style={[styles.logButtonLabel, isCompact && styles.logButtonLabelCompact]}>
-              {isEditing ? 'Save changes' : 'Log watering'} ({liters} L · {formStrength}% · {formatMl(totalMl)} nutrients)
-            </ThemedText>
-          </Pressable>
+          <View style={[styles.logActions, isCompact && styles.logActionsCompact]}>
+            <Pressable
+              style={[
+                styles.cancelButton,
+                { borderColor: palette.border, backgroundColor: palette.surface },
+                isCompact && styles.cancelButtonCompact,
+              ]}
+              onPress={handleCancelLogging}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel logging">
+              <ThemedText
+                type={isCompact ? 'defaultSemiBold' : 'title'}
+                style={[styles.cancelButtonLabel, { color: palette.text }, isCompact && styles.cancelButtonLabelCompact]}>
+                Cancel
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.logButton,
+                {
+                  backgroundColor: palette.accent,
+                  shadowColor: palette.accent,
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowOpacity: colorScheme === 'light' ? 0.25 : 0.4,
+                  shadowRadius: 12,
+                  elevation: 4,
+                },
+                isCompact && styles.logButtonCompact,
+              ]}
+              onPress={handleSubmitLog}
+              accessibilityRole="button">
+              <ThemedText
+                type={isCompact ? 'defaultSemiBold' : 'title'}
+                lightColor="#FFFFFF"
+                darkColor={Colors.dark.background}
+                style={[styles.logButtonLabel, isCompact && styles.logButtonLabelCompact]}>
+                {isEditing ? 'Save changes' : 'Log watering'} ({liters} L · {formStrength}% · {formatMl(totalMl)} nutrients)
+              </ThemedText>
+            </Pressable>
+          </View>
         </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={[styles.historyScroll, isCompact && styles.historyScrollCompact]}>
@@ -690,6 +707,13 @@ const styles = StyleSheet.create({
   },
   cancelButtonCompact: {
     width: '100%',
+  },
+  cancelButtonLabel: {
+    textAlign: 'center',
+  },
+  cancelButtonLabelCompact: {
+    fontSize: 16,
+    lineHeight: 22,
   },
   logButton: {
     borderRadius: 18,
