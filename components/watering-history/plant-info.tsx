@@ -35,7 +35,6 @@ export function PlantInfo({ plant, palette, isCompact, onRename, onArchive, onDe
         </ThemedText>
         <DetailRow label="Stage" value={stage?.name ?? plant.stageId} palette={palette} />
         <DetailRow label="Strength" value={`${Math.round(plant.strength)}%`} palette={palette} />
-        <DetailRow label="Water per feeding" value={`${formattedWaterLiters} L`} palette={palette} />
         <DetailRow
           label="Last watered"
           value={lastWatered ? lastWatered.toLocaleDateString() : 'No waterings logged yet'}
