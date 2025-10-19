@@ -34,10 +34,34 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
     return Math.max(plant.additives.rootStimulant.durationDays - elapsed, 0);
   }, [plant.additives.rootStimulant]);
 
+  const liters = Math.max(waterLiters, 0);
   const bloomRecommendation = BLOOM_BOOSTER_RECOMMENDATIONS[plant.stageId] ?? 0;
   const rootDose = doses.rootStimulant;
   const fulvicDose = doses.fulvicAcid;
   const bloomDose = doses.bloomBooster;
+
+  const rootDefault = plant.additives.rootStimulant.dosageMlPerLiter || ROOT_STIMULANT_DEFAULT_DOSAGE;
+  const rootActive = plant.additives.rootStimulant.active;
+  const rootMlPerLiter = rootActive ? rootDose?.mlPerLiter ?? rootDefault : rootDefault;
+  const rootTotal = rootActive
+    ? rootDose?.totalMl ?? rootMlPerLiter * liters
+    : rootDefault * liters;
+
+  const fulvicDefault = plant.additives.fulvicAcid.dosageMlPerLiter || FULVIC_ACID_DEFAULT_DOSAGE;
+  const fulvicActive = plant.additives.fulvicAcid.active;
+  const fulvicMlPerLiter = fulvicActive ? fulvicDose?.mlPerLiter ?? fulvicDefault : fulvicDefault;
+  const fulvicTotal = fulvicActive
+    ? fulvicDose?.totalMl ?? fulvicMlPerLiter * liters
+    : fulvicDefault * liters;
+
+  const bloomIntensity = plant.additives.bloomBooster.intensity;
+  const bloomActive = plant.additives.bloomBooster.active || bloomIntensity > 0;
+  const bloomMlPerLiter = bloomActive
+    ? bloomDose?.mlPerLiter ?? (bloomIntensity / 100) * BLOOM_BOOSTER_MAX_ML_PER_L
+    : (bloomRecommendation / 100) * BLOOM_BOOSTER_MAX_ML_PER_L;
+  const bloomTotal = bloomActive
+    ? bloomDose?.totalMl ?? bloomMlPerLiter * liters
+    : (bloomRecommendation / 100) * BLOOM_BOOSTER_MAX_ML_PER_L * liters;
 
   return (
     <View style={styles.container}>
@@ -67,13 +91,22 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
         <ThemedText style={styles.helperText}>
           Keeps roots happy after transplant. Automatically counts down a {ROOT_STIMULANT_DEFAULT_DURATION}-day cycle.
         </ThemedText>
-        <ThemedText style={styles.doseText}>
-          {plant.additives.rootStimulant.active
-            ? `Dose ${formatMl(rootDose?.mlPerLiter ?? plant.additives.rootStimulant.dosageMlPerLiter)} per L • ${formatMl(
-                rootDose?.totalMl ?? plant.additives.rootStimulant.dosageMlPerLiter * waterLiters
-              )} total`
-            : `Recommended: ${formatMl(plant.additives.rootStimulant.dosageMlPerLiter || ROOT_STIMULANT_DEFAULT_DOSAGE)} per L`}
-        </ThemedText>
+        <View style={styles.doseTable}>
+          <View style={styles.doseRow}>
+            <View style={styles.doseLabel}>
+              <ThemedText type="defaultSemiBold" style={styles.doseName}>
+                {rootActive ? 'Current dosage' : 'Recommended dosage'}
+              </ThemedText>
+              <ThemedText style={styles.dosePerLiter}>{formatMl(rootMlPerLiter)} per L</ThemedText>
+            </View>
+            <ThemedText type="title" style={[styles.doseAmount, !rootActive && styles.doseAmountMuted]}>
+              {formatMl(rootTotal)}
+            </ThemedText>
+          </View>
+        </View>
+        {!rootActive ? (
+          <ThemedText style={styles.helperMuted}>Toggle on to add it to your mix.</ThemedText>
+        ) : null}
       </ThemedView>
 
       <ThemedView style={styles.card}>
@@ -97,13 +130,22 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
         <ThemedText style={styles.helperText}>
           Use through vegetative growth. The app will automatically stop it once you enter full bloom.
         </ThemedText>
-        <ThemedText style={styles.doseText}>
-          {plant.additives.fulvicAcid.active
-            ? `Dose ${formatMl(fulvicDose?.mlPerLiter ?? plant.additives.fulvicAcid.dosageMlPerLiter)} per L • ${formatMl(
-                fulvicDose?.totalMl ?? plant.additives.fulvicAcid.dosageMlPerLiter * waterLiters
-              )} total`
-            : `Recommended: ${formatMl(plant.additives.fulvicAcid.dosageMlPerLiter || FULVIC_ACID_DEFAULT_DOSAGE)} per L`}
-        </ThemedText>
+        <View style={styles.doseTable}>
+          <View style={styles.doseRow}>
+            <View style={styles.doseLabel}>
+              <ThemedText type="defaultSemiBold" style={styles.doseName}>
+                {fulvicActive ? 'Current dosage' : 'Recommended dosage'}
+              </ThemedText>
+              <ThemedText style={styles.dosePerLiter}>{formatMl(fulvicMlPerLiter)} per L</ThemedText>
+            </View>
+            <ThemedText type="title" style={[styles.doseAmount, !fulvicActive && styles.doseAmountMuted]}>
+              {formatMl(fulvicTotal)}
+            </ThemedText>
+          </View>
+        </View>
+        {!fulvicActive ? (
+          <ThemedText style={styles.helperMuted}>Enable to include it in the watering log.</ThemedText>
+        ) : null}
       </ThemedView>
 
       <ThemedView style={styles.card}>
@@ -118,18 +160,19 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
         <ThemedText style={styles.helperText}>
           Start gently in preflower, ramp up through bloom, then taper for ripening. Adjust the slider to match canopy response.
         </ThemedText>
-        <ThemedText style={styles.doseText}>
-          {plant.additives.bloomBooster.active || (bloomDose && bloomDose.mlPerLiter > 0)
-            ? `Applying ${plant.additives.bloomBooster.intensity}% → ${formatMl(
-                bloomDose?.mlPerLiter ?? (plant.additives.bloomBooster.intensity / 100) * BLOOM_BOOSTER_MAX_ML_PER_L
-              )} per L • ${formatMl(
-                bloomDose?.totalMl ??
-                  (plant.additives.bloomBooster.intensity / 100) * BLOOM_BOOSTER_MAX_ML_PER_L * waterLiters
-              )} total`
-            : `Recommended: ${bloomRecommendation}% → ${formatMl(
-                (bloomRecommendation / 100) * BLOOM_BOOSTER_MAX_ML_PER_L
-              )} per L`}
-        </ThemedText>
+        <View style={styles.doseTable}>
+          <View style={styles.doseRow}>
+            <View style={styles.doseLabel}>
+              <ThemedText type="defaultSemiBold" style={styles.doseName}>
+                {bloomActive ? `${bloomIntensity}% intensity` : `${bloomRecommendation}% recommended`}
+              </ThemedText>
+              <ThemedText style={styles.dosePerLiter}>{formatMl(bloomMlPerLiter)} per L</ThemedText>
+            </View>
+            <ThemedText type="title" style={[styles.doseAmount, !bloomActive && styles.doseAmountMuted]}>
+              {formatMl(bloomTotal)}
+            </ThemedText>
+          </View>
+        </View>
         <View style={styles.bloomRow}>
           <Pressable
             style={styles.roundButton}
@@ -177,9 +220,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
     opacity: 0.9,
   },
-  doseText: {
+  helperMuted: {
     fontSize: 12,
-    opacity: 0.8,
+    opacity: 0.7,
+  },
+  doseTable: {
+    marginTop: 4,
+  },
+  doseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  doseLabel: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  doseName: {
+    textTransform: 'capitalize',
+  },
+  dosePerLiter: {
+    fontSize: 12,
+    opacity: 0.75,
+    marginTop: 2,
+  },
+  doseAmount: {
+    minWidth: 72,
+    textAlign: 'right',
+  },
+  doseAmountMuted: {
+    opacity: 0.6,
   },
   toggle: {
     width: 46,

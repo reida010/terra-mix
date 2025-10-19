@@ -15,7 +15,10 @@ interface PlantSelectorProps {
 
 export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId, onSelect, onAddPlant, onDelete }) => {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.container}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.container}>
       {plants.map(plant => {
         const isSelected = plant.id === selectedId;
         return (
@@ -66,7 +69,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingBottom: 20,
-    alignItems: 'stretch',
+    alignItems: 'flex-start',
   },
   item: {
     width: 160,

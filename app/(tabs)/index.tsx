@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AdditiveCard } from '@/components/additive-card';
 import { FertilizerSummary } from '@/components/fertilizer-summary';
@@ -74,19 +74,10 @@ export default function HomeScreen() {
   };
 
   const handleDeletePlant = (id: string) => {
-    Alert.alert('Delete plant', 'Are you sure you want to remove this plant?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          deletePlant(id);
-          if (id === selectedId) {
-            setSelectedId(undefined);
-          }
-        },
-      },
-    ]);
+    deletePlant(id);
+    if (id === selectedId) {
+      setSelectedId(undefined);
+    }
   };
 
   const handleLogWatering = () => {
