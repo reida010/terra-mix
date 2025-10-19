@@ -1,5 +1,10 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  View,
+  type PressableStateCallbackType,
+} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -8,6 +13,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { FEEDING_STAGE_LOOKUP } from '@/constants/feeding';
 import { WateringLogEntry } from '@/types/plant';
 import { formatMl } from '@/utils/feeding';
+import { withAlpha } from '@/utils/color';
 
 interface WateringHistoryProps {
   logs: WateringLogEntry[];
@@ -38,6 +44,20 @@ export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, 
   const canEdit = typeof onEdit === 'function';
   const canDelete = typeof onDelete === 'function';
   const showActions = canEdit || canDelete;
+  const destructiveActionStyle = React.useCallback(
+    ({ hovered, pressed }: PressableStateCallbackType) => [
+      styles.actionButton,
+      {
+        borderColor: palette.danger,
+        backgroundColor: pressed
+          ? withAlpha(palette.danger, 0.24)
+          : hovered
+            ? withAlpha(palette.danger, 0.16)
+            : withAlpha(palette.danger, 0.08),
+      },
+    ],
+    [palette.danger],
+  );
 
   if (!logs.length) {
     return (
@@ -88,7 +108,7 @@ export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, 
                   ) : null}
                   {canDelete ? (
                     <Pressable
-                      style={[styles.actionButton, { borderColor: palette.border }]}
+                      style={destructiveActionStyle}
                       onPress={() => onDelete?.(log)}
                       hitSlop={10}
                       accessibilityRole="button"

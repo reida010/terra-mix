@@ -6,12 +6,12 @@ import { ConfirmationDialog } from '@/components/confirmation-dialog';
 import { PlantSelector } from '@/components/plant-selector';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { HistoryMenuDialog } from '@/components/watering-history/history-menu-dialog';
 import { HistoryOverview } from '@/components/watering-history/history-overview';
 import { HistoryCharts } from '@/components/watering-history/history-charts';
 import { HistoryTabs, HistoryTabId } from '@/components/watering-history/history-tabs';
 import { RenameDialog } from '@/components/watering-history/rename-dialog';
 import { TabPlaceholder } from '@/components/watering-history/tab-placeholder';
+import { PlantInfo } from '@/components/watering-history/plant-info';
 import { WateringLogForm } from '@/components/watering-history/watering-log-form';
 import { Colors } from '@/constants/theme';
 import { usePlants } from '@/context/PlantContext';
@@ -48,7 +48,6 @@ export default function HomeScreen() {
   } | null>(null);
   const [pendingRename, setPendingRename] = useState<PlantState | null>(null);
   const [renameValue, setRenameValue] = useState('');
-  const [historyMenuOpen, setHistoryMenuOpen] = useState(false);
   const [activeHistoryTab, setActiveHistoryTab] = useState<HistoryTabId>('history');
 
   useEffect(() => {
@@ -122,12 +121,6 @@ export default function HomeScreen() {
     onWaterPersist: persistWater,
   });
 
-  useEffect(() => {
-    if (!plant) {
-      setHistoryMenuOpen(false);
-    }
-  }, [plant]);
-
   const liters = formWater > 0 ? formWater : 1;
 
   const draftPlant = useMemo(() => {
@@ -154,13 +147,11 @@ export default function HomeScreen() {
 
   const handleArchivePlant = () => {
     if (!plant) return;
-    setHistoryMenuOpen(false);
     setPendingArchive(plant);
   };
 
   const handleRenamePlant = () => {
     if (!plant) return;
-    setHistoryMenuOpen(false);
     setPendingRename(plant);
     setRenameValue(plant.name);
   };
@@ -181,12 +172,8 @@ export default function HomeScreen() {
   };
 
   const requestDeletePlant = (plantState: PlantState) => {
-    setHistoryMenuOpen(false);
     setPendingDelete(plantState);
   };
-
-  const openHistoryMenu = () => setHistoryMenuOpen(true);
-  const closeHistoryMenu = () => setHistoryMenuOpen(false);
 
   const handleConfirmDeletePlant = () => {
     if (!pendingDelete) return;
@@ -476,7 +463,6 @@ export default function HomeScreen() {
                   palette={palette}
                   isCompact={isCompact}
                   onStartLogging={handleStartLogging}
-                  onOpenMenu={openHistoryMenu}
                   onEditLog={handleEditLog}
                   onDeleteLog={handleDeleteLog}
                 />
@@ -489,15 +475,6 @@ export default function HomeScreen() {
           )}
         </ThemedView>
       </SafeAreaView>
-      <HistoryMenuDialog
-        visible={historyMenuOpen}
-        palette={palette}
-        plant={plant}
-        onClose={closeHistoryMenu}
-        onRename={handleRenamePlant}
-        onArchive={handleArchivePlant}
-        onDelete={() => requestDeletePlant(plant)}
-      />
       <RenameDialog
         visible={Boolean(pendingRename)}
         palette={palette}
