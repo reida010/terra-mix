@@ -143,17 +143,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     borderRadius: 12,
     borderWidth: 1,
-    minWidth: 100,
-    justifyContent: 'center',
+    width: 112,
+    justifyContent: 'space-between',
   },
   input: {
-    minWidth: 50,
+    flex: 1,
     textAlign: 'center',
-    paddingVertical: 4,
+    paddingVertical: 8,
   },
   unit: {
-    marginLeft: 6,
+    marginLeft: 8,
     fontSize: 12,
     textTransform: 'uppercase',
+    flexShrink: 0,
   },
 });
