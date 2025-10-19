@@ -162,6 +162,9 @@ export const HistoryCharts: React.FC<HistoryChartsProps> = ({ logs, palette }) =
       const growDose = log.fertilizers.find(dose => dose.fertilizer === 'grow');
       const microDose = log.fertilizers.find(dose => dose.fertilizer === 'micro');
       const bloomDose = log.fertilizers.find(dose => dose.fertilizer === 'bloom');
+      const rootAdditive = log.additives?.rootStimulant;
+      const fulvicAdditive = log.additives?.fulvicAcid;
+      const bloomBoosterAdditive = log.additives?.bloomBooster;
 
       return {
         id: log.id,
@@ -172,6 +175,9 @@ export const HistoryCharts: React.FC<HistoryChartsProps> = ({ logs, palette }) =
           grow: growDose ? growDose.mlPerLiter : null,
           micro: microDose ? microDose.mlPerLiter : null,
           bloom: bloomDose ? bloomDose.mlPerLiter : null,
+          rootStimulant: rootAdditive ? rootAdditive.mlPerLiter : null,
+          fulvicAcid: fulvicAdditive ? fulvicAdditive.mlPerLiter : null,
+          bloomBooster: bloomBoosterAdditive ? bloomBoosterAdditive.mlPerLiter : null,
         },
       };
     });
@@ -193,15 +199,20 @@ export const HistoryCharts: React.FC<HistoryChartsProps> = ({ logs, palette }) =
   return (
     <View style={styles.container}>
       <ChartCard
-        title="Water quality"
-        subtitle="Latest pH and EC readings"
-        series={[
-          { key: 'ph', label: 'pH', color: palette.primary },
-          { key: 'ec', label: 'EC', color: palette.accent, unit: 'mS/cm' },
-        ]}
+        title="EC levels"
+        subtitle="Latest electrical conductivity readings"
+        series={[{ key: 'ec', label: 'EC', color: palette.accent, unit: 'mS/cm' }]}
         points={points}
         palette={palette}
-        emptyMessage="Add pH or EC measurements to see this chart."
+        emptyMessage="Add EC measurements to see this chart."
+      />
+      <ChartCard
+        title="pH levels"
+        subtitle="Latest acidity readings"
+        series={[{ key: 'ph', label: 'pH', color: palette.primary }]}
+        points={points}
+        palette={palette}
+        emptyMessage="Add pH measurements to see this chart."
       />
       <ChartCard
         title="Base nutrients"
@@ -214,6 +225,18 @@ export const HistoryCharts: React.FC<HistoryChartsProps> = ({ logs, palette }) =
         points={points}
         palette={palette}
         emptyMessage="Log nutrients to compare Grow, Micro, and Bloom doses."
+      />
+      <ChartCard
+        title="Additives"
+        subtitle="ml per liter for supplements"
+        series={[
+          { key: 'rootStimulant', label: 'Root stimulant', color: palette.primary },
+          { key: 'fulvicAcid', label: 'Fulvic acid', color: palette.accent },
+          { key: 'bloomBooster', label: 'Bloom booster', color: palette.success },
+        ]}
+        points={points}
+        palette={palette}
+        emptyMessage="Log additives to track supplement usage over time."
       />
     </View>
   );
