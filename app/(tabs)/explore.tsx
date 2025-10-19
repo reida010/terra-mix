@@ -1,5 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -14,8 +15,9 @@ export default function ReferenceScreen() {
   const palette = Colors[colorScheme];
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <ThemedView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scroll}>
         <ThemedText type="title" style={styles.heading}>
           Feeding reference
         </ThemedText>
@@ -72,12 +74,16 @@ export default function ReferenceScreen() {
             additions. pH after the nutrients go in, and remix if the solution sits for more than 24 hours.
           </ThemedText>
         </ThemedView>
-      </ScrollView>
-    </ThemedView>
+        </ScrollView>
+      </ThemedView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },

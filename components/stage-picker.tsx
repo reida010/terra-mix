@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -41,27 +41,32 @@ export const StagePicker: React.FC<StagePickerProps> = ({ value, onChange }) => 
             <ThemedText type="subtitle" style={styles.modalTitle}>
               Choose stage
             </ThemedText>
-            {FEEDING_STAGES.map(stage => {
-              const isSelected = stage.id === value;
-              return (
-                <Pressable
-                  key={stage.id}
-                  onPress={() => {
-                    onChange(stage.id);
-                    setVisible(false);
-                  }}
-                  style={[
-                    styles.option,
-                    {
-                      borderColor: isSelected ? palette.accent : 'transparent',
-                      backgroundColor: isSelected ? palette.accentSoft : palette.surfaceMuted,
-                    },
-                  ]}>
-                  <ThemedText type="defaultSemiBold">{stage.name}</ThemedText>
-                  <ThemedText style={[styles.optionDescription, { color: palette.muted }]}>{stage.description}</ThemedText>
-                </Pressable>
-              );
-            })}
+            <ScrollView
+              style={styles.optionList}
+              contentContainerStyle={styles.optionListContent}
+              showsVerticalScrollIndicator={false}>
+              {FEEDING_STAGES.map(stage => {
+                const isSelected = stage.id === value;
+                return (
+                  <Pressable
+                    key={stage.id}
+                    onPress={() => {
+                      onChange(stage.id);
+                      setVisible(false);
+                    }}
+                    style={[
+                      styles.option,
+                      {
+                        borderColor: isSelected ? palette.accent : 'transparent',
+                        backgroundColor: isSelected ? palette.accentSoft : palette.surfaceMuted,
+                      },
+                    ]}>
+                    <ThemedText type="defaultSemiBold">{stage.name}</ThemedText>
+                    <ThemedText style={[styles.optionDescription, { color: palette.muted }]}>{stage.description}</ThemedText>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
             <Pressable
               style={[styles.option, styles.closeButton, { borderColor: palette.border, backgroundColor: palette.surface }]}
               onPress={() => setVisible(false)}>
@@ -104,9 +109,16 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 12,
     borderWidth: 1,
+    maxHeight: '80%',
   },
   modalTitle: {
     textAlign: 'center',
+  },
+  optionList: {
+    maxHeight: 360,
+  },
+  optionListContent: {
+    gap: 12,
   },
   option: {
     padding: 12,

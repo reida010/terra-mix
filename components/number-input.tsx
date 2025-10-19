@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -25,6 +25,8 @@ export const NumberInput: React.FC<NumberInputProps> = ({
   onChange,
 }) => {
   const formattedValue = useMemo(() => (Number.isFinite(value) ? String(value) : '0'), [value]);
+  const [textValue, setTextValue] = useState(formattedValue);
+  const [isFocused, setIsFocused] = useState(false);
   const colorScheme = useColorScheme() ?? 'light';
   const palette = Colors[colorScheme];
 
@@ -39,13 +41,35 @@ export const NumberInput: React.FC<NumberInputProps> = ({
     onChange(Number(candidate.toFixed(2)));
   };
 
+  useEffect(() => {
+    if (!isFocused) {
+      setTextValue(formattedValue);
+    }
+  }, [formattedValue, isFocused]);
+
   const handleTextChange = (text: string) => {
     const sanitized = text.replace(/,/g, '.');
+    if (!/^\d*(?:\.\d*)?$/.test(sanitized)) {
+      return;
+    }
+    setTextValue(text);
+    if (sanitized === '' || sanitized === '.') {
+      return;
+    }
     const numeric = parseFloat(sanitized);
-    if (!isNaN(numeric)) {
+    if (!Number.isNaN(numeric)) {
       applyChange(numeric);
-    } else if (sanitized.trim() === '') {
-      onChange(0);
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    const sanitized = textValue.replace(/,/g, '.');
+    const numeric = parseFloat(sanitized);
+    if (!Number.isNaN(numeric)) {
+      applyChange(numeric);
+    } else {
+      setTextValue(formattedValue);
     }
   };
 
@@ -66,9 +90,11 @@ export const NumberInput: React.FC<NumberInputProps> = ({
             <TextInput
               style={[styles.input, { color: palette.text }]}
               keyboardType="decimal-pad"
-              value={formattedValue}
+              value={textValue}
               onChangeText={handleTextChange}
               selectTextOnFocus
+              onFocus={() => setIsFocused(true)}
+              onBlur={handleBlur}
             />
             {unit ? (
               <ThemedText style={[styles.unit, { color: palette.muted }]}>{unit}</ThemedText>

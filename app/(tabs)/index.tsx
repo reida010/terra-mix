@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ConfirmationDialog } from '@/components/confirmation-dialog';
 import { AdditiveCard } from '@/components/additive-card';
@@ -284,71 +285,81 @@ export default function HomeScreen() {
     setEditingLog(null);
   };
 
+  const confirmationDialogs = (
+    <>
+      <ConfirmationDialog
+        visible={Boolean(pendingArchive)}
+        title="Archive plant"
+        message={
+          pendingArchive
+            ? `Archive ${pendingArchive.name}? You can restore it from the Archive tab.`
+            : 'Archive this plant? You can restore it later.'
+        }
+        confirmLabel="Archive"
+        onCancel={handleCancelArchive}
+        onConfirm={handleConfirmArchive}
+      />
+      <ConfirmationDialog
+        visible={Boolean(pendingDelete)}
+        title="Delete plant"
+        message={
+          pendingDelete
+            ? `Permanently delete ${pendingDelete.name}? This cannot be undone.`
+            : 'Permanently delete this plant? This cannot be undone.'
+        }
+        confirmLabel="Delete"
+        confirmTone="destructive"
+        onCancel={handleCancelDeletePlant}
+        onConfirm={handleConfirmDeletePlant}
+      />
+      <ConfirmationDialog
+        visible={Boolean(pendingLogDelete)}
+        title="Delete watering"
+        message={
+          pendingLogDelete
+            ? `Remove the watering logged on ${new Date(
+                pendingLogDelete.log.createdAt
+              ).toLocaleDateString()}? This cannot be undone.`
+            : 'Remove this watering entry? This cannot be undone.'
+        }
+        confirmLabel="Delete"
+        confirmTone="destructive"
+        onCancel={handleCancelDeleteLog}
+        onConfirm={handleConfirmDeleteLog}
+      />
+    </>
+  );
+
   if (loading) {
     return (
-      <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator color={palette.accent} />
-      </ThemedView>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <ThemedView style={styles.loadingContainer}>
+          <ActivityIndicator color={palette.accent} />
+        </ThemedView>
+      </SafeAreaView>
     );
   }
 
   if (!plant) {
     return (
       <>
-        <ThemedView style={styles.container}>
-          <PlantSelector
-            plants={activePlants}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onAddPlant={() => addPlant()}
-          />
-          <ThemedView
-            style={[styles.emptyState, { backgroundColor: palette.surfaceMuted, borderColor: palette.border }]}>
-            <ThemedText style={{ color: palette.muted }}>
-              No active plants yet. Add one or restore from the Archive tab.
-            </ThemedText>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+          <ThemedView style={styles.container}>
+            <PlantSelector
+              plants={activePlants}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              onAddPlant={() => addPlant()}
+            />
+            <ThemedView
+              style={[styles.emptyState, { backgroundColor: palette.surfaceMuted, borderColor: palette.border }]}>
+              <ThemedText style={{ color: palette.muted }}>
+                No active plants yet. Add one or restore from the Archive tab.
+              </ThemedText>
+            </ThemedView>
           </ThemedView>
-        </ThemedView>
-        <ConfirmationDialog
-          visible={Boolean(pendingArchive)}
-          title="Archive plant"
-          message={
-            pendingArchive
-              ? `Archive ${pendingArchive.name}? You can restore it from the Archive tab.`
-              : 'Archive this plant? You can restore it later.'
-          }
-          confirmLabel="Archive"
-          onCancel={handleCancelArchive}
-          onConfirm={handleConfirmArchive}
-        />
-        <ConfirmationDialog
-          visible={Boolean(pendingDelete)}
-          title="Delete plant"
-          message={
-            pendingDelete
-              ? `Permanently delete ${pendingDelete.name}? This cannot be undone.`
-              : 'Permanently delete this plant? This cannot be undone.'
-          }
-          confirmLabel="Delete"
-          confirmTone="destructive"
-          onCancel={handleCancelDeletePlant}
-          onConfirm={handleConfirmDeletePlant}
-        />
-        <ConfirmationDialog
-          visible={Boolean(pendingLogDelete)}
-          title="Delete watering"
-          message={
-            pendingLogDelete
-              ? `Remove the watering logged on ${new Date(
-                  pendingLogDelete.log.createdAt
-                ).toLocaleDateString()}? This cannot be undone.`
-              : 'Remove this watering entry? This cannot be undone.'
-          }
-          confirmLabel="Delete"
-          confirmTone="destructive"
-          onCancel={handleCancelDeleteLog}
-          onConfirm={handleConfirmDeleteLog}
-        />
+        </SafeAreaView>
+        {confirmationDialogs}
       </>
     );
   }
@@ -358,14 +369,15 @@ export default function HomeScreen() {
 
   return (
     <>
-      <ThemedView style={styles.container}>
-        <PlantSelector
-          plants={activePlants}
-          selectedId={plant.id}
-          onSelect={setSelectedId}
-          onAddPlant={() => addPlant()}
-        />
-      {isLogging ? (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <ThemedView style={styles.container}>
+          <PlantSelector
+            plants={activePlants}
+            selectedId={plant.id}
+            onSelect={setSelectedId}
+            onAddPlant={() => addPlant()}
+          />
+          {isLogging ? (
         <ScrollView contentContainerStyle={[styles.scroll, isCompact && styles.scrollCompact]}>
           {isEditing && editingLog ? (
             <ThemedText style={[styles.editingBanner, { backgroundColor: palette.accentSoft, color: palette.accent }]}>
@@ -535,7 +547,8 @@ export default function HomeScreen() {
           <WateringHistory logs={plant.logs} onEdit={handleEditLog} onDelete={handleDeleteLog} />
         </ScrollView>
       )}
-      </ThemedView>
+        </ThemedView>
+      </SafeAreaView>
       <ConfirmationDialog
         visible={historyMenuOpen}
         title={`${plant.name} options`}
@@ -575,46 +588,6 @@ export default function HomeScreen() {
         </View>
       </ConfirmationDialog>
       <ConfirmationDialog
-        visible={Boolean(pendingArchive)}
-        title="Archive plant"
-        message={
-          pendingArchive
-            ? `Archive ${pendingArchive.name}? You can restore it from the Archive tab.`
-            : 'Archive this plant? You can restore it later.'
-        }
-        confirmLabel="Archive"
-        onCancel={handleCancelArchive}
-        onConfirm={handleConfirmArchive}
-      />
-      <ConfirmationDialog
-        visible={Boolean(pendingDelete)}
-        title="Delete plant"
-        message={
-          pendingDelete
-            ? `Permanently delete ${pendingDelete.name}? This cannot be undone.`
-            : 'Permanently delete this plant? This cannot be undone.'
-        }
-        confirmLabel="Delete"
-        confirmTone="destructive"
-        onCancel={handleCancelDeletePlant}
-        onConfirm={handleConfirmDeletePlant}
-      />
-      <ConfirmationDialog
-        visible={Boolean(pendingLogDelete)}
-        title="Delete watering"
-        message={
-          pendingLogDelete
-            ? `Remove the watering logged on ${new Date(
-                pendingLogDelete.log.createdAt
-              ).toLocaleDateString()}? This cannot be undone.`
-            : 'Remove this watering entry? This cannot be undone.'
-        }
-        confirmLabel="Delete"
-        confirmTone="destructive"
-        onCancel={handleCancelDeleteLog}
-        onConfirm={handleConfirmDeleteLog}
-      />
-      <ConfirmationDialog
         visible={Boolean(pendingRename)}
         title="Rename plant"
         message={pendingRename ? `Give ${pendingRename.name} a new name.` : 'Rename this plant.'}
@@ -633,11 +606,16 @@ export default function HomeScreen() {
           onSubmitEditing={handleConfirmRename}
         />
       </ConfirmationDialog>
+
+      {confirmationDialogs}
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },

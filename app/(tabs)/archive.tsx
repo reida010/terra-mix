@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ConfirmationDialog } from '@/components/confirmation-dialog';
 import { ThemedText } from '@/components/themed-text';
@@ -71,11 +72,13 @@ export default function ArchiveScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+    <>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <ThemedView style={styles.container}>
+          <ScrollView contentContainerStyle={styles.scroll}>
         {archivedPlants.length === 0 ? (
           <ThemedView style={[styles.emptyCard, { backgroundColor: palette.surfaceMuted, borderColor: palette.border }]}>
-            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+            <ThemedText style={[styles.emptyText, { color: palette.muted }]}> 
               No archived plants yet. Plants you archive from the Home tab will show up here.
             </ThemedText>
           </ThemedView>
@@ -141,7 +144,7 @@ export default function ArchiveScreen() {
           })
         )}
       </ScrollView>
-      <ConfirmationDialog
+          <ConfirmationDialog
         visible={Boolean(pendingRename)}
         title="Rename plant"
         message={pendingRename ? `Give ${pendingRename.name} a new name.` : 'Rename this plant.'}
@@ -159,12 +162,17 @@ export default function ArchiveScreen() {
           returnKeyType="done"
           onSubmitEditing={handleConfirmRename}
         />
-      </ConfirmationDialog>
-    </ThemedView>
+          </ConfirmationDialog>
+        </ThemedView>
+      </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
