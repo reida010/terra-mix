@@ -75,7 +75,12 @@ export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId
           isCompact && styles.itemCompact,
         ]}
         accessibilityRole="button">
-        <View style={styles.addContent}>
+        <View
+          style={[
+            styles.itemContent,
+            isCompact && styles.itemContentCompact,
+            styles.addContent,
+          ]}>
           <ThemedText
             type={isCompact ? 'subtitle' : 'title'}
             style={[styles.plus, { color: palette.accent }, isCompact && styles.plusCompact]}>
