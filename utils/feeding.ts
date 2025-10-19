@@ -47,24 +47,28 @@ export function calculateAdditiveDoses(plant: PlantState, waterLiters: number): 
   const rootMlPerLiter = plant.additives.rootStimulant.dosageMlPerLiter || ROOT_STIMULANT_DEFAULT_DOSAGE;
   const fulvicMlPerLiter = plant.additives.fulvicAcid.dosageMlPerLiter || FULVIC_ACID_DEFAULT_DOSAGE;
   const bloomMlPerLiter = (plant.additives.bloomBooster.intensity / 100) * BLOOM_BOOSTER_MAX_ML_PER_L;
+  const stageId = plant.stageId;
+  const allowsRoot = stageId === 'seedling' || stageId === 'earlyGrow' || stageId === 'grow';
+  const allowsFulvic = allowsRoot || stageId === 'preflower';
+  const allowsBloom = stageId === 'preflower' || stageId === 'flower' || stageId === 'lateFlower' || stageId === 'ripen';
 
   const summary: AdditiveDoseSummary = {};
 
-  if (plant.additives.rootStimulant.active) {
+  if (allowsRoot && plant.additives.rootStimulant.active) {
     summary.rootStimulant = {
       mlPerLiter: Number(rootMlPerLiter.toFixed(2)),
       totalMl: Number((rootMlPerLiter * waterLiters).toFixed(2)),
     };
   }
 
-  if (plant.additives.fulvicAcid.active) {
+  if (allowsFulvic && plant.additives.fulvicAcid.active) {
     summary.fulvicAcid = {
       mlPerLiter: Number(fulvicMlPerLiter.toFixed(2)),
       totalMl: Number((fulvicMlPerLiter * waterLiters).toFixed(2)),
     };
   }
 
-  if (plant.additives.bloomBooster.active && bloomMlPerLiter > 0) {
+  if (allowsBloom && plant.additives.bloomBooster.active && bloomMlPerLiter > 0) {
     summary.bloomBooster = {
       intensity: plant.additives.bloomBooster.intensity,
       mlPerLiter: Number(bloomMlPerLiter.toFixed(2)),
