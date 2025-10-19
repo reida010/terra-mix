@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -8,14 +8,21 @@ import { WateringLogEntry } from '@/types/plant';
 
 const CHART_HEIGHT = 140;
 const MAX_POINTS = 8;
+const POINT_SIZE = 10;
 
 type HistoryPalette = typeof Colors.light;
+
+type ChartRange = {
+  min: number;
+  max: number;
+};
 
 type ChartSeries = {
   key: string;
   label: string;
   color: string;
   unit?: string;
+  range?: ChartRange;
 };
 
 type ChartPoint = {
@@ -57,16 +64,18 @@ const ensureRange = (values: number[]) => {
   return { min, max };
 };
 
-const normalizeHeight = (value: number, min: number, max: number) => {
-  if (Number.isNaN(value)) {
-    return 0;
+const withAlpha = (color: string, alpha: number) => {
+  if (color.startsWith('#')) {
+    const hex = color.replace('#', '');
+    if (hex.length === 6 || hex.length === 8) {
+      const rgb = hex.slice(-6);
+      const alphaHex = Math.round(Math.max(0, Math.min(1, alpha)) * 255)
+        .toString(16)
+        .padStart(2, '0');
+      return `#${alphaHex}${rgb}`;
+    }
   }
-  if (max === min) {
-    return CHART_HEIGHT * 0.6;
-  }
-  const ratio = (value - min) / (max - min);
-  const clamped = Math.max(0, Math.min(1, ratio));
-  return Math.max(6, clamped * CHART_HEIGHT);
+  return color;
 };
 
 interface ChartCardProps {
@@ -79,15 +88,182 @@ interface ChartCardProps {
 }
 
 const ChartCard: React.FC<ChartCardProps> = ({ title, subtitle, series, points, palette, emptyMessage }) => {
-  const availableValues = series.flatMap(def =>
-    points
-      .map(point => point.values[def.key])
-      .filter((value): value is number => typeof value === 'number' && !Number.isNaN(value))
-  );
+  const [chartWidth, setChartWidth] = React.useState(0);
 
-  const hasData = availableValues.length > 0;
+  const allValues = useMemo(() => {
+    return series.flatMap(def =>
+      points
+        .map(point => point.values[def.key])
+        .filter((value): value is number => typeof value === 'number' && !Number.isNaN(value))
+    );
+  }, [series, points]);
 
-  const { min, max } = ensureRange(availableValues);
+  const hasData = allValues.length > 0;
+
+  const manualMins = series
+    .map(def => def.range?.min)
+    .filter((value): value is number => typeof value === 'number' && !Number.isNaN(value));
+  const manualMaxs = series
+    .map(def => def.range?.max)
+    .filter((value): value is number => typeof value === 'number' && !Number.isNaN(value));
+
+  const dataRange = ensureRange(allValues);
+
+  let min = manualMins.length ? Math.min(...manualMins) : dataRange.min;
+  let max = manualMaxs.length ? Math.max(...manualMaxs) : dataRange.max;
+
+  if (!Number.isFinite(min)) {
+    min = 0;
+  }
+  if (!Number.isFinite(max)) {
+    max = min + 1;
+  }
+  if (max === min) {
+    max = min + 1;
+  }
+
+  const handleChartLayout = (event: LayoutChangeEvent) => {
+    const width = event?.nativeEvent?.layout?.width;
+    if (typeof width === 'number') {
+      setChartWidth(width);
+    }
+  };
+
+  const chartPoints = useMemo(() => {
+    if (!hasData || chartWidth <= 0) {
+      return [];
+    }
+
+    const count = points.length;
+    const singlePointOffset = chartWidth / 2;
+    const step = count > 1 ? chartWidth / (count - 1) : 0;
+
+    return points.map((point, index) => {
+      const x = count === 1 ? singlePointOffset : index * step;
+      return { ...point, x };
+    });
+  }, [chartWidth, hasData, points]);
+
+  const getY = (value: number) => {
+    const ratio = (value - min) / (max - min);
+    const clamped = Math.max(0, Math.min(1, ratio));
+    return CHART_HEIGHT - clamped * CHART_HEIGHT;
+  };
+
+  const seriesContent = chartPoints.length
+    ? series.map(item => {
+        const seriesPoints = chartPoints.map(point => {
+          const rawValue = point.values[item.key];
+          if (typeof rawValue !== 'number' || Number.isNaN(rawValue)) {
+            return null;
+          }
+          return {
+            id: `${item.key}-${point.id}`,
+            x: point.x,
+            y: getY(rawValue),
+            value: rawValue,
+          };
+        });
+
+        const segments: { from: NonNullable<(typeof seriesPoints)[number]>; to: NonNullable<(typeof seriesPoints)[number]> }[] = [];
+        let previous: NonNullable<(typeof seriesPoints)[number]> | null = null;
+
+        seriesPoints.forEach(point => {
+          if (!point) {
+            previous = null;
+            return;
+          }
+          if (previous) {
+            segments.push({ from: previous, to: point });
+          }
+          previous = point;
+        });
+
+        return (
+          <React.Fragment key={item.key}>
+            {segments.map(segment => {
+              const deltaX = segment.to.x - segment.from.x;
+              const deltaY = segment.to.y - segment.from.y;
+              const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+              const angle = (Math.atan2(deltaY, deltaX) * 180) / Math.PI;
+              const midX = (segment.from.x + segment.to.x) / 2;
+              const midY = (segment.from.y + segment.to.y) / 2;
+              return (
+                <View
+                  key={`${segment.from.id}-to-${segment.to.id}`}
+                  style={[
+                    styles.lineSegment,
+                    {
+                      width: length,
+                      backgroundColor: item.color,
+                      left: midX - length / 2,
+                      top: midY - 1,
+                      transform: [{ rotate: `${angle}deg` }],
+                    },
+                  ]}
+                />
+              );
+            })}
+            {seriesPoints.map(point =>
+              point ? (
+                <React.Fragment key={point.id}>
+                  <View
+                    style={[
+                      styles.point,
+                      {
+                        borderColor: item.color,
+                        left: point.x - POINT_SIZE / 2,
+                        top: point.y - POINT_SIZE / 2,
+                      },
+                    ]}
+                  >
+                    <View style={[styles.pointInner, { backgroundColor: item.color }]} />
+                  </View>
+                  <ThemedText
+                    style={[
+                      styles.pointValue,
+                      {
+                        left: point.x,
+                        top: Math.max(point.y - 22, 0),
+                        color: palette.muted,
+                      },
+                    ]}
+                  >
+                    {formatNumber(point.value)}
+                    {item.unit ? ` ${item.unit}` : ''}
+                  </ThemedText>
+                </React.Fragment>
+              ) : null
+            )}
+          </React.Fragment>
+        );
+      })
+    : null;
+
+  const rangeBands = chartPoints.length
+    ? series
+        .filter(item => item.range)
+        .map(item => {
+          const range = item.range!;
+          const upper = getY(range.max);
+          const lower = getY(range.min);
+          const top = Math.min(upper, lower);
+          const height = Math.max(0, Math.abs(lower - upper));
+          return (
+            <View
+              key={`${item.key}-range`}
+              style={[
+                styles.rangeBand,
+                {
+                  top,
+                  height,
+                  backgroundColor: withAlpha(item.color, 0.12),
+                },
+              ]}
+            />
+          );
+        })
+    : null;
 
   return (
     <ThemedView style={[styles.card, { borderColor: palette.border, backgroundColor: palette.surface }]}>
@@ -108,40 +284,19 @@ const ChartCard: React.FC<ChartCardProps> = ({ title, subtitle, series, points, 
       </View>
       {hasData ? (
         <View style={styles.chartArea}>
-          <View style={[styles.axis, { backgroundColor: palette.border }]} />
-          <View style={styles.bars}>
+          <View style={styles.chartSurface} onLayout={handleChartLayout}>
+            {rangeBands}
+            <View style={[styles.axis, { backgroundColor: palette.border }]} />
+            {seriesContent}
+          </View>
+          <View
+            style={[
+              styles.labelsRow,
+              { justifyContent: points.length === 1 ? 'center' : 'space-between' },
+            ]}
+          >
             {points.map(point => (
-              <View key={point.id} style={styles.barGroup}>
-                <View style={styles.barCluster}>
-                  {series.map(item => {
-                    const rawValue = point.values[item.key];
-                    const isNumber = typeof rawValue === 'number' && !Number.isNaN(rawValue);
-                    const height = isNumber ? normalizeHeight(rawValue, min, max) : 0;
-                    return (
-                      <View key={item.key} style={styles.barItem}>
-                        {isNumber ? (
-                          <ThemedText style={[styles.valueLabel, { color: palette.muted }]}>
-                            {formatNumber(rawValue)}
-                          </ThemedText>
-                        ) : (
-                          <ThemedText style={[styles.valueLabel, { color: palette.border }]}>—</ThemedText>
-                        )}
-                        <View
-                          style={[
-                            styles.bar,
-                            {
-                              height,
-                              backgroundColor: isNumber ? item.color : 'transparent',
-                              borderColor: isNumber ? 'transparent' : palette.border,
-                            },
-                          ]}
-                        />
-                      </View>
-                    );
-                  })}
-                </View>
-                <ThemedText style={[styles.barLabel, { color: palette.muted }]}>{point.label}</ThemedText>
-              </View>
+              <ThemedText key={point.id} style={[styles.axisLabel, { color: palette.muted }]}>{point.label}</ThemedText>
             ))}
           </View>
         </View>
@@ -151,6 +306,7 @@ const ChartCard: React.FC<ChartCardProps> = ({ title, subtitle, series, points, 
     </ThemedView>
   );
 };
+
 
 export const HistoryCharts: React.FC<HistoryChartsProps> = ({ logs, palette }) => {
   const points = useMemo(() => {
@@ -209,7 +365,7 @@ export const HistoryCharts: React.FC<HistoryChartsProps> = ({ logs, palette }) =
       <ChartCard
         title="pH levels"
         subtitle="Latest acidity readings"
-        series={[{ key: 'ph', label: 'pH', color: palette.primary }]}
+        series={[{ key: 'ph', label: 'pH', color: palette.primary, range: { min: 5, max: 7 } }]}
         points={points}
         palette={palette}
         emptyMessage="Add pH measurements to see this chart."
@@ -276,54 +432,63 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   chartArea: {
+    gap: 12,
+  },
+  chartSurface: {
+    height: CHART_HEIGHT,
     position: 'relative',
-    height: CHART_HEIGHT + 32,
+    overflow: 'hidden',
+    borderRadius: 12,
   },
   axis: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 32,
+    bottom: 0,
     height: 1,
     opacity: 0.5,
   },
-  bars: {
+  labelsRow: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingHorizontal: 4,
+  },
+  axisLabel: {
+    fontSize: 12,
+  },
+  lineSegment: {
+    position: 'absolute',
+    height: 2,
+    borderRadius: 1,
+  },
+  point: {
+    position: 'absolute',
+    width: POINT_SIZE,
+    height: POINT_SIZE,
+    borderRadius: POINT_SIZE / 2,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  pointInner: {
+    width: POINT_SIZE - 4,
+    height: POINT_SIZE - 4,
+    borderRadius: (POINT_SIZE - 4) / 2,
+  },
+  pointValue: {
+    position: 'absolute',
+    fontSize: 11,
+    textAlign: 'center',
+    width: 64,
+    marginLeft: -32,
+  },
+  rangeBand: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
-    top: 0,
-    paddingBottom: 32,
-    gap: 12,
-    justifyContent: 'space-between',
-  },
-  barGroup: {
-    flex: 1,
-    minWidth: 40,
-    alignItems: 'center',
-    gap: 8,
-  },
-  barCluster: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'flex-end',
-    height: '100%',
-  },
-  barItem: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  bar: {
-    width: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  valueLabel: {
-    fontSize: 11,
-  },
-  barLabel: {
-    fontSize: 12,
+    borderRadius: 12,
   },
   emptyCard: {
     marginTop: 12,
