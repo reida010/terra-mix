@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AdditiveCard } from '@/components/additive-card';
 import { FertilizerSummary } from '@/components/fertilizer-summary';
@@ -9,124 +9,269 @@ import { StagePicker } from '@/components/stage-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WateringHistory } from '@/components/watering-history';
-import { BLOOM_BOOSTER_RECOMMENDATIONS } from '@/constants/feeding';
+import { BLOOM_BOOSTER_RECOMMENDATIONS, FEEDING_STAGES } from '@/constants/feeding';
 import { usePlants } from '@/context/PlantContext';
 import { FeedingStageId, WateringLogEntry } from '@/types/plant';
 import { AdditiveDoseSummary, calculateAdditiveDoses, calculateFertilizerDoses, formatMl } from '@/utils/feeding';
 
 export default function HomeScreen() {
-  const { plants, loading, addPlant, updatePlant, deletePlant, logWatering } = usePlants();
+  const {
+    plants,
+    loading,
+    addPlant,
+    updatePlant,
+    deletePlant,
+    logWatering,
+    archivePlant,
+    updateWateringLog,
+    deleteWateringLog,
+  } = usePlants();
+  const activePlants = useMemo(() => plants.filter(plant => !plant.archivedAt), [plants]);
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [isLogging, setIsLogging] = useState(false);
+  const [editingLog, setEditingLog] = useState<WateringLogEntry | null>(null);
+  const [formStage, setFormStage] = useState<FeedingStageId>(FEEDING_STAGES[0].id);
+  const [formStrength, setFormStrength] = useState<number>(75);
+  const [formWater, setFormWater] = useState<number>(3);
 
   useEffect(() => {
-    if (!selectedId && plants.length > 0) {
-      setSelectedId(plants[0].id);
+    if (!selectedId && activePlants.length > 0) {
+      setSelectedId(activePlants[0].id);
     }
-  }, [selectedId, plants]);
+  }, [selectedId, activePlants]);
 
   useEffect(() => {
-    if (selectedId && !plants.find(plant => plant.id === selectedId) && plants[0]) {
-      setSelectedId(plants[0].id);
+    if (selectedId && !activePlants.find(plant => plant.id === selectedId)) {
+      setSelectedId(activePlants[0]?.id);
     }
-  }, [selectedId, plants]);
+  }, [selectedId, activePlants]);
 
   useEffect(() => {
     setIsLogging(false);
+    setEditingLog(null);
   }, [selectedId]);
 
-  const plant = useMemo(() => plants.find(p => p.id === selectedId), [plants, selectedId]);
+  const plant = useMemo(() => activePlants.find(p => p.id === selectedId), [activePlants, selectedId]);
+
+  useEffect(() => {
+    if (!plant) return;
+    if (!isLogging) {
+      setFormStage(plant.stageId);
+      setFormStrength(plant.strength);
+      setFormWater(plant.preferredWaterLiters);
+      setEditingLog(null);
+      return;
+    }
+
+    if (editingLog) {
+      setFormStage(editingLog.stageId);
+      setFormStrength(editingLog.strength);
+      setFormWater(editingLog.waterLiters);
+    } else {
+      setFormStage(plant.stageId);
+      setFormStrength(plant.strength);
+      setFormWater(plant.preferredWaterLiters);
+    }
+  }, [plant, isLogging, editingLog]);
+
+  const liters = formWater > 0 ? formWater : 1;
+
+  const draftPlant = useMemo(() => {
+    if (!plant) return undefined;
+    return {
+      ...plant,
+      stageId: formStage,
+      strength: formStrength,
+      preferredWaterLiters: formWater,
+    };
+  }, [plant, formStage, formStrength, formWater]);
 
   const doses = useMemo(() => {
-    if (!plant) return [];
-    const liters = plant.preferredWaterLiters > 0 ? plant.preferredWaterLiters : 1;
-    return calculateFertilizerDoses(plant, liters);
-  }, [plant]);
+    if (!draftPlant) return [];
+    const safeLiters = liters > 0 ? liters : 1;
+    return calculateFertilizerDoses(draftPlant, safeLiters);
+  }, [draftPlant, liters]);
 
   const additiveDoses = useMemo<AdditiveDoseSummary>(() => {
-    if (!plant) return {} as AdditiveDoseSummary;
-    const liters = plant.preferredWaterLiters > 0 ? plant.preferredWaterLiters : 1;
-    return calculateAdditiveDoses(plant, liters);
-  }, [plant]);
+    if (!draftPlant) return {} as AdditiveDoseSummary;
+    const safeLiters = liters > 0 ? liters : 1;
+    return calculateAdditiveDoses(draftPlant, safeLiters);
+  }, [draftPlant, liters]);
 
   const handleStageChange = (stageId: FeedingStageId) => {
-    if (!plant) return;
-    updatePlant(plant.id, prev => ({
-      ...prev,
-      stageId,
-    }));
+    setFormStage(stageId);
+    if (plant && !editingLog) {
+      updatePlant(plant.id, prev => ({
+        ...prev,
+        stageId,
+      }));
+    }
   };
 
   const handleStrengthChange = (value: number) => {
-    if (!plant) return;
-    updatePlant(plant.id, prev => ({
-      ...prev,
-      strength: Math.round(value),
-    }));
-  };
-
-  const handleWaterChange = (value: number) => {
-    if (!plant) return;
-    updatePlant(plant.id, prev => ({
-      ...prev,
-      preferredWaterLiters: Math.max(0, value),
-    }));
-  };
-
-  const handleDeletePlant = (id: string) => {
-    deletePlant(id);
-    if (id === selectedId) {
-      setSelectedId(undefined);
+    setFormStrength(value);
+    if (plant && !editingLog) {
+      updatePlant(plant.id, prev => ({
+        ...prev,
+        strength: Math.round(value),
+      }));
     }
   };
 
-  const handleLogWatering = () => {
-    if (!plant) return;
-    const liters = plant.preferredWaterLiters > 0 ? plant.preferredWaterLiters : 1;
-    const logEntry: WateringLogEntry = {
-      id: `log-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      waterLiters: liters,
-      strength: plant.strength,
-      stageId: plant.stageId,
-      fertilizers: doses,
-      additives: additiveDoses,
-    };
-    logWatering(plant.id, logEntry);
-    setIsLogging(false);
+  const handleWaterChange = (value: number) => {
+    setFormWater(value);
+    if (plant && !editingLog) {
+      updatePlant(plant.id, prev => ({
+        ...prev,
+        preferredWaterLiters: Math.max(0, value),
+      }));
+    }
   };
 
-  if (loading || !plant) {
+  const confirmDeletePlant = (id: string) => {
+    const target = plants.find(p => p.id === id);
+    Alert.alert(
+      'Delete plant',
+      target ? `Remove ${target.name}? This cannot be undone.` : 'Remove this plant?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deletePlant(id);
+            if (id === selectedId) {
+              setSelectedId(undefined);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleArchivePlant = () => {
+    if (!plant) return;
+    Alert.alert(
+      'Archive plant',
+      `Archive ${plant.name}? You can restore it from the Archive tab.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Archive',
+          style: 'destructive',
+          onPress: () => {
+            archivePlant(plant.id, true);
+            setSelectedId(undefined);
+            setIsLogging(false);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleStartLogging = () => {
+    setEditingLog(null);
+    setIsLogging(true);
+  };
+
+  const handleEditLog = (log: WateringLogEntry) => {
+    setEditingLog(log);
+    setIsLogging(true);
+  };
+
+  const handleDeleteLog = (log: WateringLogEntry) => {
+    if (!plant) return;
+    Alert.alert('Delete watering', 'Remove this watering entry?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => deleteWateringLog(plant.id, log.id),
+      },
+    ]);
+  };
+
+  const handleSubmitLog = () => {
+    if (!plant || !draftPlant) return;
+    const safeLiters = liters > 0 ? liters : 1;
+
+    if (editingLog) {
+      updateWateringLog(plant.id, editingLog.id, entry => ({
+        ...entry,
+        waterLiters: safeLiters,
+        strength: formStrength,
+        stageId: formStage,
+        fertilizers: doses,
+        additives: additiveDoses,
+      }));
+    } else {
+      const logEntry: WateringLogEntry = {
+        id: `log-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        waterLiters: safeLiters,
+        strength: formStrength,
+        stageId: formStage,
+        fertilizers: doses,
+        additives: additiveDoses,
+      };
+      logWatering(plant.id, logEntry);
+    }
+
+    setIsLogging(false);
+    setEditingLog(null);
+  };
+
+  if (loading) {
     return (
       <ThemedView style={styles.loadingContainer}>
-        {loading ? (
-          <ActivityIndicator />
-        ) : (
-          <ThemedText>No plants yet. Add one to begin.</ThemedText>
-        )}
+        <ActivityIndicator />
       </ThemedView>
     );
   }
 
-  const liters = plant.preferredWaterLiters > 0 ? plant.preferredWaterLiters : 1;
+  if (!plant) {
+    return (
+      <ThemedView style={styles.container}>
+        <PlantSelector
+          plants={activePlants}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          onAddPlant={() => addPlant()}
+          onDelete={confirmDeletePlant}
+        />
+        <View style={styles.emptyState}>
+          <ThemedText>No active plants yet. Add one or restore from the Archive tab.</ThemedText>
+        </View>
+      </ThemedView>
+    );
+  }
+
+  const totalMl = doses.reduce((sum, dose) => sum + dose.ml, 0);
+  const isEditing = Boolean(editingLog);
 
   return (
     <ThemedView style={styles.container}>
       <PlantSelector
-        plants={plants}
+        plants={activePlants}
         selectedId={plant.id}
         onSelect={setSelectedId}
         onAddPlant={() => addPlant()}
-        onDelete={handleDeletePlant}
+        onDelete={confirmDeletePlant}
       />
       {isLogging ? (
         <ScrollView contentContainerStyle={styles.scroll}>
+          {isEditing && editingLog ? (
+            <ThemedText style={styles.editingBanner}>
+              Editing log from {new Date(editingLog.createdAt).toLocaleDateString()} at{' '}
+              {new Date(editingLog.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </ThemedText>
+          ) : null}
           <View style={styles.section}>
-            <StagePicker value={plant.stageId} onChange={handleStageChange} />
+            <StagePicker value={formStage} onChange={handleStageChange} />
             <NumberInput
               label="Strength"
               unit="%"
-              value={plant.strength}
+              value={formStrength}
               minimum={40}
               maximum={110}
               step={5}
@@ -135,7 +280,7 @@ export default function HomeScreen() {
             <NumberInput
               label="Water volume"
               unit="L"
-              value={plant.preferredWaterLiters}
+              value={formWater}
               minimum={0.5}
               step={0.5}
               onChange={handleWaterChange}
@@ -147,64 +292,65 @@ export default function HomeScreen() {
 
           <FertilizerSummary doses={doses} waterLiters={liters} />
 
-          <AdditiveCard
-            plant={plant}
-            doses={additiveDoses}
-            waterLiters={liters}
-            onToggleRoot={next =>
-              updatePlant(plant.id, prev => ({
-                ...prev,
-                additives: {
-                  ...prev.additives,
-                  rootStimulant: {
-                    ...prev.additives.rootStimulant,
-                    active: next,
-                    startDate: next ? new Date().toISOString() : undefined,
+          {draftPlant ? (
+            <AdditiveCard
+              plant={draftPlant}
+              doses={additiveDoses}
+              waterLiters={liters}
+              onToggleRoot={next =>
+                updatePlant(plant.id, prev => ({
+                  ...prev,
+                  additives: {
+                    ...prev.additives,
+                    rootStimulant: {
+                      ...prev.additives.rootStimulant,
+                      active: next,
+                      startDate: next ? new Date().toISOString() : undefined,
+                    },
                   },
-                },
-              }))
-            }
-            onToggleFulvic={next =>
-              updatePlant(plant.id, prev => ({
-                ...prev,
-                additives: {
-                  ...prev.additives,
-                  fulvicAcid: {
-                    ...prev.additives.fulvicAcid,
-                    active: next,
-                    startedAt: next ? new Date().toISOString() : undefined,
+                }))
+              }
+              onToggleFulvic={next =>
+                updatePlant(plant.id, prev => ({
+                  ...prev,
+                  additives: {
+                    ...prev.additives,
+                    fulvicAcid: {
+                      ...prev.additives.fulvicAcid,
+                      active: next,
+                      startedAt: next ? new Date().toISOString() : undefined,
+                    },
                   },
-                },
-              }))
-            }
-            onAdjustBloom={intensity =>
-              updatePlant(plant.id, prev => ({
-                ...prev,
-                additives: {
-                  ...prev.additives,
-                  bloomBooster: {
-                    ...prev.additives.bloomBooster,
-                    active: intensity > 0,
-                    intensity,
-                    lastAdjustedAt: new Date().toISOString(),
+                }))
+              }
+              onAdjustBloom={intensity =>
+                updatePlant(plant.id, prev => ({
+                  ...prev,
+                  additives: {
+                    ...prev.additives,
+                    bloomBooster: {
+                      ...prev.additives.bloomBooster,
+                      active: intensity > 0,
+                      intensity,
+                      lastAdjustedAt: new Date().toISOString(),
+                    },
                   },
-                },
-              }))
-            }
-          />
+                }))
+              }
+            />
+          ) : null}
 
           <ThemedView style={styles.tipCard}>
             <ThemedText type="subtitle">Bloom game plan</ThemedText>
             <ThemedText style={styles.tipCopy}>
-              Suggested bloom stimulant intensity for {plant.stageId} is{' '}
-              {BLOOM_BOOSTER_RECOMMENDATIONS[plant.stageId]}%. Keep an eye on leaf tips—dial back 5% if you see light burn, or add 5%
+              Suggested bloom stimulant intensity for {formStage} is {BLOOM_BOOSTER_RECOMMENDATIONS[formStage]}%. Keep an eye on leaf tips—dial back 5% if you see light burn, or add 5%
               when plants are hungry.
             </ThemedText>
           </ThemedView>
 
-          <Pressable style={styles.logButton} onPress={handleLogWatering} accessibilityRole="button">
+          <Pressable style={styles.logButton} onPress={handleSubmitLog} accessibilityRole="button">
             <ThemedText type="title" style={styles.logButtonLabel}>
-              Log watering ({liters} L · {plant.strength}% · {formatMl(doses.reduce((sum, dose) => sum + dose.ml, 0))} nutrients)
+              {isEditing ? 'Save changes' : 'Log watering'} ({liters} L · {formStrength}% · {formatMl(totalMl)} nutrients)
             </ThemedText>
           </Pressable>
         </ScrollView>
@@ -212,13 +358,24 @@ export default function HomeScreen() {
         <ScrollView contentContainerStyle={styles.historyScroll}>
           <View style={styles.historyHeader}>
             <ThemedText type="title">Watering history</ThemedText>
-            <Pressable style={styles.addLogButton} onPress={() => setIsLogging(true)} accessibilityRole="button">
-              <ThemedText type="defaultSemiBold" style={styles.addLogLabel}>
-                + Log watering
-              </ThemedText>
-            </Pressable>
+            <View style={styles.historyActions}>
+              <Pressable
+                style={styles.archiveButton}
+                onPress={handleArchivePlant}
+                accessibilityRole="button"
+                accessibilityLabel={`Archive ${plant.name}`}>
+                <ThemedText type="defaultSemiBold" style={styles.archiveLabel}>
+                  Archive
+                </ThemedText>
+              </Pressable>
+              <Pressable style={styles.addLogButton} onPress={handleStartLogging} accessibilityRole="button">
+                <ThemedText type="defaultSemiBold" style={styles.addLogLabel}>
+                  + Log watering
+                </ThemedText>
+              </Pressable>
+            </View>
           </View>
-          <WateringHistory logs={plant.logs} />
+          <WateringHistory logs={plant.logs} onEdit={handleEditLog} onDelete={handleDeleteLog} />
         </ScrollView>
       )}
     </ThemedView>
@@ -279,6 +436,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  historyActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   addLogButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -288,5 +449,29 @@ const styles = StyleSheet.create({
   },
   addLogLabel: {
     fontSize: 14,
+  },
+  archiveButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(248, 113, 113, 0.4)',
+  },
+  archiveLabel: {
+    fontSize: 14,
+    color: '#f87171',
+  },
+  emptyState: {
+    marginTop: 48,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  editingBanner: {
+    marginTop: 12,
+    marginBottom: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    fontSize: 13,
   },
 });

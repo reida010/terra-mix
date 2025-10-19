@@ -85,4 +85,5 @@ export interface PlantState {
   additives: AdditivesState;
   updatedAt: string;
   logs: WateringLogEntry[];
+  archivedAt?: string;
 }

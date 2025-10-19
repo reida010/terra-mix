@@ -108,6 +108,7 @@ const createDefaultPlants = (): PlantState[] =>
     additives: createInitialAdditives(),
     updatedAt: new Date().toISOString(),
     logs: [],
+    archivedAt: undefined,
   }));
 
 interface PlantContextValue {
@@ -118,6 +119,13 @@ interface PlantContextValue {
   updatePlant: (id: string, updater: (plant: PlantState) => PlantState) => void;
   deletePlant: (id: string) => void;
   logWatering: (id: string, log: WateringLogEntry) => void;
+  archivePlant: (id: string, archived: boolean) => void;
+  updateWateringLog: (
+    plantId: string,
+    logId: string,
+    updater: (entry: WateringLogEntry) => WateringLogEntry
+  ) => void;
+  deleteWateringLog: (plantId: string, logId: string) => void;
 }
 
 const PlantContext = createContext<PlantContextValue | undefined>(undefined);
@@ -164,6 +172,7 @@ export const PlantProvider: React.FC<React.PropsWithChildren> = ({ children }) =
           preferredWaterLiters: 3,
           additives: createInitialAdditives(),
           updatedAt: new Date().toISOString(),
+          archivedAt: undefined,
         });
         const next = [...prev, newPlant];
         storageSet(STORAGE_KEY, next);
@@ -209,9 +218,78 @@ export const PlantProvider: React.FC<React.PropsWithChildren> = ({ children }) =
     });
   }, []);
 
+  const archivePlant = useCallback((id: string, archived: boolean) => {
+    setPlants(prev => {
+      const next = prev.map(plant => {
+        if (plant.id !== id) return plant;
+        const archivedAt = archived ? plant.archivedAt ?? new Date().toISOString() : undefined;
+        return normalizePlant({ ...plant, archivedAt });
+      });
+
+      storageSet(STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+
+  const updateWateringLog = useCallback(
+    (plantId: string, logId: string, updater: (entry: WateringLogEntry) => WateringLogEntry) => {
+      setPlants(prev => {
+        const next = prev.map(plant => {
+          if (plant.id !== plantId) return plant;
+          const logs = plant.logs.map(log => {
+            if (log.id !== logId) return log;
+            return updater(log);
+          });
+          const updated = normalizePlant({ ...plant, logs });
+          return updated;
+        });
+
+        storageSet(STORAGE_KEY, next);
+        return next;
+      });
+    },
+    []
+  );
+
+  const deleteWateringLog = useCallback((plantId: string, logId: string) => {
+    setPlants(prev => {
+      const next = prev.map(plant => {
+        if (plant.id !== plantId) return plant;
+        const logs = plant.logs.filter(log => log.id !== logId);
+        const updated = normalizePlant({ ...plant, logs });
+        return updated;
+      });
+
+      storageSet(STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+
   const value = useMemo<PlantContextValue>(
-    () => ({ plants, loading, refresh, addPlant, updatePlant, deletePlant, logWatering }),
-    [plants, loading, refresh, addPlant, updatePlant, deletePlant, logWatering]
+    () => ({
+      plants,
+      loading,
+      refresh,
+      addPlant,
+      updatePlant,
+      deletePlant,
+      logWatering,
+      archivePlant,
+      updateWateringLog,
+      deleteWateringLog,
+    }),
+    [
+      plants,
+      loading,
+      refresh,
+      addPlant,
+      updatePlant,
+      deletePlant,
+      logWatering,
+      archivePlant,
+      updateWateringLog,
+      deleteWateringLog,
+    ]
   );
 
   return <PlantContext.Provider value={value}>{children}</PlantContext.Provider>;
