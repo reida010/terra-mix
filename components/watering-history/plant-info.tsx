@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View, type PressableStateCallbackType } from 're
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { withAlpha } from '@/utils/color';
-import { FEEDING_STAGE_LOOKUP } from '@/constants/feeding';
+import { FEEDING_STAGE_LOOKUP, FULVIC_ACID_DEFAULT_INTENSITY } from '@/constants/feeding';
 import { PlantState } from '@/types/plant';
 
 interface PlantInfoProps {
@@ -20,12 +20,11 @@ export function PlantInfo({ plant, palette, isCompact, onRename, onArchive, onDe
   const stage = FEEDING_STAGE_LOOKUP[plant.stageId];
   const latestLog = plant.logs[0];
   const lastWatered = latestLog ? new Date(latestLog.createdAt) : null;
-  const formattedWaterLiters = plant.preferredWaterLiters.toLocaleString(undefined, {
-    maximumFractionDigits: 2,
-  });
+  const formatAdditiveStatus = (active: boolean, description: string, suffix?: string) =>
+    active ? (suffix ? `${description} · ${suffix}` : description) : 'Inactive';
 
-  const formatAdditiveStatus = (active: boolean, description: string) =>
-    active ? description : 'Inactive';
+  const fulvicIntensity = plant.additives.fulvicAcid.intensity ?? FULVIC_ACID_DEFAULT_INTENSITY;
+  const fulvicIntensityLabel = `${fulvicIntensity.toLocaleString(undefined, { maximumFractionDigits: 0 })}%`;
 
   return (
     <View style={[styles.container, isCompact && styles.containerCompact]}>
@@ -54,7 +53,7 @@ export function PlantInfo({ plant, palette, isCompact, onRename, onArchive, onDe
           />
           <DetailRow
             label="Fulvic acid"
-            value={formatAdditiveStatus(plant.additives.fulvicAcid.active, 'Active')}
+            value={formatAdditiveStatus(plant.additives.fulvicAcid.active, 'Active', fulvicIntensityLabel)}
             palette={palette}
           />
           <DetailRow

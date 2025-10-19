@@ -31,7 +31,7 @@ export interface RootStimulantState {
 export interface FulvicAcidState {
   active: boolean;
   startedAt?: string;
-  dosageMlPerLiter: number;
+  intensity: number; // percentage 0 - 100
 }
 
 export interface BloomBoosterState {
@@ -56,6 +56,7 @@ export interface LoggedFertilizerDose {
 export interface LoggedAdditiveDose {
   mlPerLiter: number;
   totalMl: number;
+  intensity?: number;
 }
 
 export interface LoggedBloomBoosterDose extends LoggedAdditiveDose {

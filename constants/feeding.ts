@@ -90,7 +90,8 @@ export const BLOOM_BOOSTER_RECOMMENDATIONS: Record<FeedingStageId, number> = {
 
 export const ROOT_STIMULANT_DEFAULT_DURATION = 14;
 export const ROOT_STIMULANT_DEFAULT_DOSAGE = 0.2;
-export const FULVIC_ACID_DEFAULT_DOSAGE = 0.3;
+export const FULVIC_ACID_MAX_ML_PER_L = 0.43; // 70% ≈ 0.30 ml/L legacy default
+export const FULVIC_ACID_DEFAULT_INTENSITY = 70;
 export const BLOOM_BOOSTER_MAX_ML_PER_L = 2;
 
 export const FEEDING_STAGE_LOOKUP = FEEDING_STAGES.reduce(
