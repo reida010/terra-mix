@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   BLOOM_BOOSTER_RECOMMENDATIONS,
   BLOOM_BOOSTER_MAX_ML_PER_L,
@@ -26,6 +28,8 @@ interface AdditiveCardProps {
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
 export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot, onToggleFulvic, onAdjustBloom, waterLiters, doses }) => {
+  const colorScheme = useColorScheme() ?? 'light';
+  const palette = Colors[colorScheme];
   const rootDaysRemaining = useMemo(() => {
     if (!plant.additives.rootStimulant.active || !plant.additives.rootStimulant.startDate) {
       return plant.additives.rootStimulant.durationDays;
@@ -66,7 +70,7 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
   return (
     <View style={styles.container}>
       <ThemedText type="title">Additives</ThemedText>
-      <ThemedView style={styles.card}>
+      <ThemedView style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}> 
         <View style={styles.headerRow}>
           <View style={styles.headerText}>
             <ThemedText type="subtitle">Root Stimulant</ThemedText>
@@ -82,9 +86,19 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
             onPress={() =>
               onToggleRoot(!plant.additives.rootStimulant.active)
             }
-            style={[styles.toggle, plant.additives.rootStimulant.active && styles.toggleActive]}>
+            style={[
+              styles.toggle,
+              {
+                backgroundColor: plant.additives.rootStimulant.active ? palette.accent : palette.surfaceMuted,
+                borderColor: plant.additives.rootStimulant.active ? palette.accent : palette.border,
+              },
+            ]}>
             <View
-              style={[styles.knob, plant.additives.rootStimulant.active && styles.knobActive]}
+              style={[
+                styles.knob,
+                { backgroundColor: colorScheme === 'light' ? '#fff' : palette.surface },
+                plant.additives.rootStimulant.active && styles.knobActive,
+              ]}
             />
           </Pressable>
         </View>
@@ -109,7 +123,7 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
         ) : null}
       </ThemedView>
 
-      <ThemedView style={styles.card}>
+      <ThemedView style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}> 
         <View style={styles.headerRow}>
           <View style={styles.headerText}>
             <ThemedText type="subtitle">Fulvic Acid</ThemedText>
@@ -123,8 +137,20 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
             accessibilityRole="switch"
             accessibilityState={{ checked: plant.additives.fulvicAcid.active }}
             onPress={() => onToggleFulvic(!plant.additives.fulvicAcid.active)}
-            style={[styles.toggle, plant.additives.fulvicAcid.active && styles.toggleActive]}>
-            <View style={[styles.knob, plant.additives.fulvicAcid.active && styles.knobActive]} />
+            style={[
+              styles.toggle,
+              {
+                backgroundColor: plant.additives.fulvicAcid.active ? palette.accent : palette.surfaceMuted,
+                borderColor: plant.additives.fulvicAcid.active ? palette.accent : palette.border,
+              },
+            ]}>
+            <View
+              style={[
+                styles.knob,
+                { backgroundColor: colorScheme === 'light' ? '#fff' : palette.surface },
+                plant.additives.fulvicAcid.active && styles.knobActive,
+              ]}
+            />
           </Pressable>
         </View>
         <ThemedText style={styles.helperText}>
@@ -148,7 +174,7 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
         ) : null}
       </ThemedView>
 
-      <ThemedView style={styles.card}>
+      <ThemedView style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}> 
         <View style={styles.headerRow}>
           <View style={styles.headerText}>
             <ThemedText type="subtitle">Bloom Stimulant</ThemedText>
@@ -175,17 +201,21 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
         </View>
         <View style={styles.bloomRow}>
           <Pressable
-            style={styles.roundButton}
+            style={[styles.roundButton, { borderColor: palette.border, backgroundColor: palette.surfaceMuted }]}
             onPress={() => onAdjustBloom(clamp(plant.additives.bloomBooster.intensity - 5, 0, 100))}>
-            <ThemedText type="default">-</ThemedText>
+            <ThemedText type="default" lightColor={palette.primary} darkColor={palette.accent}>
+              -
+            </ThemedText>
           </Pressable>
           <ThemedText type="title" style={styles.bloomValue}>
             {plant.additives.bloomBooster.intensity}%
           </ThemedText>
           <Pressable
-            style={styles.roundButton}
+            style={[styles.roundButton, { borderColor: palette.border, backgroundColor: palette.surfaceMuted }]}
             onPress={() => onAdjustBloom(clamp(plant.additives.bloomBooster.intensity + 5, 0, 100))}>
-            <ThemedText type="default">+</ThemedText>
+            <ThemedText type="default" lightColor={palette.primary} darkColor={palette.accent}>
+              +
+            </ThemedText>
           </Pressable>
         </View>
       </ThemedView>
@@ -202,6 +232,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     gap: 8,
+    borderWidth: 1,
   },
   headerRow: {
     flexDirection: 'row',
@@ -256,17 +287,13 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 20,
     padding: 3,
-    backgroundColor: 'rgba(148, 163, 184, 0.5)',
     justifyContent: 'center',
-  },
-  toggleActive: {
-    backgroundColor: 'rgba(52, 211, 153, 0.65)',
+    borderWidth: 1,
   },
   knob: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#fff',
     transform: [{ translateX: 0 }],
   },
   knobActive: {
@@ -289,7 +316,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.6)',
+    borderWidth: 1,
   },
 });

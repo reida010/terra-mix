@@ -4,6 +4,8 @@ import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react
 import { ConfirmationDialog } from '@/components/confirmation-dialog';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { FEEDING_STAGE_LOOKUP } from '@/constants/feeding';
 import { usePlants } from '@/context/PlantContext';
 import { PlantState } from '@/types/plant';
@@ -23,6 +25,8 @@ export default function ArchiveScreen() {
   const archivedPlants = useMemo(() => plants.filter(plant => Boolean(plant.archivedAt)), [plants]);
   const [pendingRename, setPendingRename] = useState<PlantState | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const colorScheme = useColorScheme() ?? 'light';
+  const palette = Colors[colorScheme];
 
   const handleRestore = (id: string) => {
     archivePlant(id, false);
@@ -70,8 +74,8 @@ export default function ArchiveScreen() {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         {archivedPlants.length === 0 ? (
-          <ThemedView style={styles.emptyCard}>
-            <ThemedText style={styles.emptyText}>
+          <ThemedView style={[styles.emptyCard, { backgroundColor: palette.surfaceMuted, borderColor: palette.border }]}>
+            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
               No archived plants yet. Plants you archive from the Home tab will show up here.
             </ThemedText>
           </ThemedView>
@@ -82,37 +86,41 @@ export default function ArchiveScreen() {
             const totalMl = lastLog ? lastLog.fertilizers.reduce((sum, dose) => sum + dose.ml, 0) : 0;
 
             return (
-              <ThemedView key={plant.id} style={styles.card}>
+              <ThemedView
+                key={plant.id}
+                style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
                 <View style={styles.headerRow}>
                   <View style={styles.headerInfo}>
                     <ThemedText type="title">{plant.name}</ThemedText>
-                    <ThemedText style={styles.meta}>
+                    <ThemedText style={[styles.meta, { color: palette.muted }]}>
                       Archived {formatDate(plant.archivedAt)} · Stage {stage?.name ?? plant.stageId}
                     </ThemedText>
                   </View>
                   <View style={styles.actions}>
                     <Pressable
-                      style={styles.actionButton}
+                      style={[styles.actionButton, { borderColor: palette.border, backgroundColor: palette.surface }]}
                       onPress={() => handleRename(plant)}
                       accessibilityRole="button"
                       accessibilityLabel={`Rename ${plant.name}`}>
-                      <ThemedText type="defaultSemiBold">Rename</ThemedText>
+                      <ThemedText type="defaultSemiBold" style={{ color: palette.accent }}>
+                        Rename
+                      </ThemedText>
                     </Pressable>
                     <Pressable
-                      style={[styles.actionButton, styles.restoreButton]}
+                      style={[styles.actionButton, { borderColor: palette.success, backgroundColor: palette.primarySoft }]}
                       onPress={() => handleRestore(plant.id)}
                       accessibilityRole="button"
                       accessibilityLabel={`Restore ${plant.name}`}>
-                      <ThemedText type="defaultSemiBold" style={styles.restoreLabel}>
+                      <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>
                         Restore
                       </ThemedText>
                     </Pressable>
                     <Pressable
-                      style={styles.actionButton}
+                      style={[styles.actionButton, { borderColor: palette.danger, backgroundColor: colorScheme === 'light' ? 'rgba(199, 86, 96, 0.12)' : 'rgba(240, 149, 154, 0.18)' }]}
                       onPress={() => handleDelete(plant.id)}
                       accessibilityRole="button"
                       accessibilityLabel={`Delete ${plant.name}`}>
-                      <ThemedText type="defaultSemiBold" style={styles.deleteLabel}>
+                      <ThemedText type="defaultSemiBold" style={{ color: palette.danger }}>
                         Delete
                       </ThemedText>
                     </Pressable>
@@ -120,13 +128,13 @@ export default function ArchiveScreen() {
                 </View>
                 {lastLog ? (
                   <View style={styles.summaryRow}>
-                    <ThemedText style={styles.summaryLabel}>Last watering</ThemedText>
-                    <ThemedText style={styles.summaryValue}>
+                    <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>Last watering</ThemedText>
+                    <ThemedText style={[styles.summaryValue, { color: palette.text }]}>
                       {formatDate(lastLog.createdAt)} · {lastLog.waterLiters} L · {lastLog.strength}% · {formatMl(totalMl)} nutrients
                     </ThemedText>
                   </View>
                 ) : (
-                  <ThemedText style={styles.summaryValue}>No waterings logged yet.</ThemedText>
+                  <ThemedText style={[styles.summaryValue, { color: palette.muted }]}>No waterings logged yet.</ThemedText>
                 )}
               </ThemedView>
             );
@@ -142,11 +150,11 @@ export default function ArchiveScreen() {
         onCancel={handleCancelRename}
         onConfirm={handleConfirmRename}>
         <TextInput
-          style={styles.renameInput}
+          style={[styles.renameInput, { borderColor: palette.border, backgroundColor: palette.surface, color: palette.text }]}
           value={renameValue}
           onChangeText={setRenameValue}
           placeholder="New plant name"
-          placeholderTextColor="rgba(148, 163, 184, 0.7)"
+          placeholderTextColor={colorScheme === 'light' ? 'rgba(15, 52, 69, 0.35)' : 'rgba(228, 243, 250, 0.45)'}
           autoFocus
           returnKeyType="done"
           onSubmitEditing={handleConfirmRename}
@@ -169,16 +177,17 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 24,
     alignItems: 'center',
+    borderWidth: 1,
   },
   emptyText: {
     textAlign: 'center',
     fontSize: 14,
-    opacity: 0.8,
   },
   card: {
     borderRadius: 18,
     padding: 16,
     gap: 12,
+    borderWidth: 1,
   },
   headerRow: {
     flexDirection: 'row',
@@ -202,26 +211,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
-  },
-  restoreButton: {
-    borderColor: 'rgba(52, 211, 153, 0.5)',
-  },
-  restoreLabel: {
-    color: '#10b981',
-  },
-  deleteLabel: {
-    color: '#f87171',
+    borderWidth: 1,
   },
   renameInput: {
     borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
+    borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 16,
-    color: '#e2e8f0',
   },
   summaryRow: {
     gap: 4,

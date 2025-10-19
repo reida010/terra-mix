@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 're
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { PlantState } from '@/types/plant';
 
 interface PlantSelectorProps {
@@ -16,6 +17,8 @@ export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId
   const { width } = useWindowDimensions();
   const isCompact = width < 420;
   const itemWidth = Math.min(Math.max(width * 0.45, 136), 200);
+  const colorScheme = useColorScheme() ?? 'light';
+  const palette = Colors[colorScheme];
 
   return (
     <ScrollView
@@ -30,9 +33,20 @@ export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId
             onPress={() => onSelect(plant.id)}
             style={[
               styles.item,
-              { width: isCompact ? itemWidth : 184 },
+              {
+                width: isCompact ? itemWidth : 184,
+                backgroundColor: palette.surface,
+                borderColor: palette.border,
+              },
               isCompact && styles.itemCompact,
-              isSelected && styles.itemSelected,
+              isSelected && {
+                borderColor: palette.accent,
+                shadowColor: palette.accent,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: colorScheme === 'light' ? 0.22 : 0.35,
+                shadowRadius: 10,
+                elevation: 3,
+              },
             ]}>
             <View style={[styles.itemContent, isCompact && styles.itemContentCompact]}>
               <ThemedText type={isCompact ? 'defaultSemiBold' : 'subtitle'} style={[styles.name, isCompact && styles.nameCompact]}>
@@ -53,15 +67,23 @@ export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId
         style={[
           styles.item,
           styles.addButton,
-          { width: isCompact ? itemWidth : 184 },
+          {
+            width: isCompact ? itemWidth : 184,
+            backgroundColor: palette.accentSoft,
+            borderColor: palette.accent,
+          },
           isCompact && styles.itemCompact,
         ]}
         accessibilityRole="button">
         <View style={styles.addContent}>
-          <ThemedText type={isCompact ? 'subtitle' : 'title'} style={[styles.plus, isCompact && styles.plusCompact]}>
+          <ThemedText
+            type={isCompact ? 'subtitle' : 'title'}
+            style={[styles.plus, { color: palette.accent }, isCompact && styles.plusCompact]}>
             +
           </ThemedText>
-          <ThemedText type="defaultSemiBold" style={isCompact ? styles.addLabelCompact : undefined}>
+          <ThemedText
+            type="defaultSemiBold"
+            style={[{ color: palette.accent }, isCompact ? styles.addLabelCompact : undefined]}>
             New Plant
           </ThemedText>
         </View>
@@ -80,16 +102,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginRight: 12,
     overflow: 'hidden',
-    backgroundColor: Colors.light.background,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
   },
   itemCompact: {
     borderRadius: 14,
-  },
-  itemSelected: {
-    borderColor: '#34d399',
-    borderWidth: 2,
   },
   itemContent: {
     padding: 14,
@@ -118,10 +134,8 @@ const styles = StyleSheet.create({
   addButton: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderStyle: 'dashed',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
   },
   addContent: {
     alignItems: 'center',

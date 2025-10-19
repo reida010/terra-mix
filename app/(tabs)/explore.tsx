@@ -3,28 +3,35 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { FERTILIZER_LABELS, FEEDING_STAGES, ROOT_STIMULANT_DEFAULT_DURATION } from '@/constants/feeding';
 
 const FERTILIZER_ORDER = ['grow', 'micro', 'bloom'] as const;
 
 export default function ReferenceScreen() {
+  const colorScheme = useColorScheme() ?? 'light';
+  const palette = Colors[colorScheme];
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <ThemedText type="title" style={styles.heading}>
           Feeding reference
         </ThemedText>
-        <ThemedText style={styles.intro}>
+        <ThemedText style={[styles.intro, { color: palette.muted }]}>
           Terra Aquatica&apos;s TriPart series shines when each part is nudged for the plant&apos;s phase. Use this overview to sense
           check the values that the calculator generates on the main tab.
         </ThemedText>
 
         {FEEDING_STAGES.map(stage => (
-          <View key={stage.id} style={styles.card}>
+          <ThemedView
+            key={stage.id}
+            style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             <ThemedText type="subtitle" style={styles.stageTitle}>
               {stage.name}
             </ThemedText>
-            <ThemedText style={styles.stageDescription}>{stage.description}</ThemedText>
+            <ThemedText style={[styles.stageDescription, { color: palette.muted }]}>{stage.description}</ThemedText>
             <View style={styles.rateTable}>
               {FERTILIZER_ORDER.map(key => {
                 const rate = stage.rates.find(entry => entry.fertilizer === key);
@@ -32,36 +39,39 @@ export default function ReferenceScreen() {
                 return (
                   <View key={key} style={styles.rateRow}>
                     <ThemedText type="defaultSemiBold">{FERTILIZER_LABELS[key]}</ThemedText>
-                    <ThemedText>{rate.mlPerLiter} ml / L</ThemedText>
+                    <ThemedText style={{ color: palette.primary }}>{rate.mlPerLiter} ml / L</ThemedText>
                   </View>
                 );
               })}
             </View>
-          </View>
+          </ThemedView>
         ))}
 
-        <View style={styles.card}>
+        <ThemedView style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <ThemedText type="subtitle">Additive habits</ThemedText>
           <View style={styles.bulletList}>
-            <ThemedText style={styles.stageDescription}>
+            <ThemedText style={[styles.stageDescription, { color: palette.muted }]}>
               • Root stimulant: run {ROOT_STIMULANT_DEFAULT_DURATION} days after transplant, then give roots a breather.
             </ThemedText>
-            <ThemedText style={styles.stageDescription}>
+            <ThemedText style={[styles.stageDescription, { color: palette.muted }]}>
               • Fulvic acid: keep it in the mix through veg. The app parks it automatically once you flip to bloom.
             </ThemedText>
-            <ThemedText style={styles.stageDescription}>
+            <ThemedText style={[styles.stageDescription, { color: palette.muted }]}>
               • Bloom booster: ease in around preflower, peak mid bloom, then feather off for ripening.
             </ThemedText>
           </View>
-        </View>
+        </ThemedView>
 
-        <View style={[styles.card, styles.tipCard]}>
+        <ThemedView
+          style={[styles.card, styles.tipCard, { backgroundColor: palette.primarySoft, borderColor: palette.primary }]}
+          lightColor={palette.primarySoft}
+          darkColor={palette.primarySoft}>
           <ThemedText type="subtitle">Quick mixing tips</ThemedText>
-          <ThemedText style={styles.tipText}>
+          <ThemedText style={[styles.tipText, { color: palette.primary }]}>
             Always add Micro to the water first so calcium doesn&apos;t lock out. Follow with Grow, then Bloom, stirring between
             additions. pH after the nutrients go in, and remix if the solution sits for more than 24 hours.
           </ThemedText>
-        </View>
+        </ThemedView>
       </ScrollView>
     </ThemedView>
   );
@@ -87,9 +97,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 18,
     gap: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
-    backgroundColor: 'rgba(15, 23, 42, 0.05)',
+    borderWidth: 1,
   },
   stageTitle: {
     textTransform: 'capitalize',
@@ -109,8 +117,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   tipCard: {
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderWidth: 1,
   },
   tipText: {
     fontSize: 13,

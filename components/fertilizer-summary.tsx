@@ -3,6 +3,8 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { FertilizerDose, formatMl } from '@/utils/feeding';
 
 interface FertilizerSummaryProps {
@@ -11,10 +13,13 @@ interface FertilizerSummaryProps {
 }
 
 export const FertilizerSummary: React.FC<FertilizerSummaryProps> = ({ doses, waterLiters }) => {
+  const colorScheme = useColorScheme() ?? 'light';
+  const palette = Colors[colorScheme];
+
   return (
-    <ThemedView style={styles.card}>
+    <ThemedView style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
       <ThemedText type="title">Fertilizer mix</ThemedText>
-      <ThemedText style={styles.subtitle}>For {waterLiters} L of solution</ThemedText>
+      <ThemedText style={[styles.subtitle, { color: palette.muted }]}>For {waterLiters} L of solution</ThemedText>
       <View style={styles.table}>
         {doses.map(dose => (
           <View key={dose.fertilizer} style={styles.row}>
@@ -22,7 +27,7 @@ export const FertilizerSummary: React.FC<FertilizerSummaryProps> = ({ doses, wat
               <ThemedText type="subtitle" style={styles.name}>
                 {dose.label}
               </ThemedText>
-              <ThemedText style={styles.perLiter}>{formatMl(dose.mlPerLiter)} per L</ThemedText>
+              <ThemedText style={[styles.perLiter, { color: palette.muted }]}>{formatMl(dose.mlPerLiter)} per L</ThemedText>
             </View>
             <ThemedText type="title" style={styles.amount}>
               {formatMl(dose.ml)}
@@ -40,6 +45,7 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 12,
     marginTop: 16,
+    borderWidth: 1,
   },
   subtitle: {
     opacity: 0.75,
@@ -61,7 +67,6 @@ const styles = StyleSheet.create({
   },
   perLiter: {
     fontSize: 12,
-    opacity: 0.7,
     marginTop: 2,
   },
   amount: {

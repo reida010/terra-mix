@@ -11,9 +11,11 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WateringHistory } from '@/components/watering-history';
 import { BLOOM_BOOSTER_RECOMMENDATIONS } from '@/constants/feeding';
+import { Colors } from '@/constants/theme';
 import { usePlants } from '@/context/PlantContext';
 import { FeedingStageId, PlantState, WateringLogEntry } from '@/types/plant';
 import { DEFAULT_FORM_EC, DEFAULT_FORM_PH, useWateringForm } from '@/hooks/useWateringForm';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AdditiveDoseSummary, calculateAdditiveDoses, calculateFertilizerDoses, formatMl } from '@/utils/feeding';
 
 export default function HomeScreen() {
@@ -30,6 +32,8 @@ export default function HomeScreen() {
   } = usePlants();
   const { width } = useWindowDimensions();
   const isCompact = width < 420;
+  const colorScheme = useColorScheme() ?? 'light';
+  const palette = Colors[colorScheme];
   const activePlants = useMemo(() => plants.filter(plant => !plant.archivedAt), [plants]);
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [isLogging, setIsLogging] = useState(false);
@@ -283,7 +287,7 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator />
+        <ActivityIndicator color={palette.accent} />
       </ThemedView>
     );
   }
@@ -298,9 +302,12 @@ export default function HomeScreen() {
             onSelect={setSelectedId}
             onAddPlant={() => addPlant()}
           />
-          <View style={styles.emptyState}>
-            <ThemedText>No active plants yet. Add one or restore from the Archive tab.</ThemedText>
-          </View>
+          <ThemedView
+            style={[styles.emptyState, { backgroundColor: palette.surfaceMuted, borderColor: palette.border }]}>
+            <ThemedText style={{ color: palette.muted }}>
+              No active plants yet. Add one or restore from the Archive tab.
+            </ThemedText>
+          </ThemedView>
         </ThemedView>
         <ConfirmationDialog
           visible={Boolean(pendingArchive)}
@@ -361,7 +368,7 @@ export default function HomeScreen() {
       {isLogging ? (
         <ScrollView contentContainerStyle={[styles.scroll, isCompact && styles.scrollCompact]}>
           {isEditing && editingLog ? (
-            <ThemedText style={styles.editingBanner}>
+            <ThemedText style={[styles.editingBanner, { backgroundColor: palette.accentSoft, color: palette.accent }]}>
               Editing log from {new Date(editingLog.createdAt).toLocaleDateString()} at{' '}
               {new Date(editingLog.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </ThemedText>
@@ -401,7 +408,7 @@ export default function HomeScreen() {
               step={0.1}
               onChange={setFormEc}
             />
-            <ThemedText style={styles.helperCopy}>
+            <ThemedText style={[styles.helperCopy, { color: palette.muted }]}>
               The strength slider multiplies the base feeding chart. 100% equals the published Terra Aquatica schedule.
             </ThemedText>
           </View>
@@ -456,20 +463,36 @@ export default function HomeScreen() {
             />
           ) : null}
 
-          <ThemedView style={styles.tipCard}>
+          <ThemedView
+            style={[styles.tipCard, { backgroundColor: palette.primarySoft, borderColor: palette.primary }]}
+            lightColor={palette.primarySoft}
+            darkColor={palette.primarySoft}>
             <ThemedText type="subtitle">Bloom game plan</ThemedText>
-            <ThemedText style={styles.tipCopy}>
+            <ThemedText style={[styles.tipCopy, { color: palette.primary }]}>
               Suggested bloom stimulant intensity for {formStage} is {BLOOM_BOOSTER_RECOMMENDATIONS[formStage]}%. Keep an eye on leaf tips—dial back 5% if you see light burn, or add 5%
               when plants are hungry.
             </ThemedText>
           </ThemedView>
 
-          <Pressable
-            style={[styles.logButton, isCompact && styles.logButtonCompact]}
-            onPress={handleSubmitLog}
+            <Pressable
+              style={[
+                styles.logButton,
+                {
+                  backgroundColor: palette.accent,
+                  shadowColor: palette.accent,
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowOpacity: colorScheme === 'light' ? 0.25 : 0.4,
+                  shadowRadius: 12,
+                  elevation: 4,
+                },
+                isCompact && styles.logButtonCompact,
+              ]}
+              onPress={handleSubmitLog}
             accessibilityRole="button">
             <ThemedText
               type={isCompact ? 'defaultSemiBold' : 'title'}
+              lightColor="#FFFFFF"
+              darkColor={Colors.dark.background}
               style={[styles.logButtonLabel, isCompact && styles.logButtonLabelCompact]}>
               {isEditing ? 'Save changes' : 'Log watering'} ({liters} L · {formStrength}% · {formatMl(totalMl)} nutrients)
             </ThemedText>
@@ -483,19 +506,27 @@ export default function HomeScreen() {
             </ThemedText>
             <View style={[styles.historyActions, isCompact && styles.historyActionsCompact]}>
               <Pressable
-                style={[styles.addLogButton, isCompact && styles.addLogButtonCompact]}
+                style={[
+                  styles.addLogButton,
+                  { borderColor: palette.accent, backgroundColor: palette.accentSoft },
+                  isCompact && styles.addLogButtonCompact,
+                ]}
                 onPress={handleStartLogging}
                 accessibilityRole="button">
-                <ThemedText type="defaultSemiBold" style={[styles.addLogLabel, isCompact && styles.addLogLabelCompact]}>
+                <ThemedText
+                  type="defaultSemiBold"
+                  style={[styles.addLogLabel, { color: palette.accent }, isCompact && styles.addLogLabelCompact]}>
                   + Log watering
                 </ThemedText>
               </Pressable>
               <Pressable
-                style={[styles.menuButton, isCompact && styles.menuButtonCompact]}
+                style={[styles.menuButton, { borderColor: palette.border, backgroundColor: palette.surface }, isCompact && styles.menuButtonCompact]}
                 onPress={openHistoryMenu}
                 accessibilityRole="button"
                 accessibilityLabel={`Open actions for ${plant.name}`}>
-                <ThemedText type={isCompact ? 'defaultSemiBold' : 'title'} style={[styles.menuLabel, isCompact && styles.menuLabelCompact]}>
+                <ThemedText
+                  type={isCompact ? 'defaultSemiBold' : 'title'}
+                  style={[styles.menuLabel, { color: palette.accent }, isCompact && styles.menuLabelCompact]}>
                   ⋯
                 </ThemedText>
               </Pressable>
@@ -513,7 +544,7 @@ export default function HomeScreen() {
         onConfirm={closeHistoryMenu}>
         <View style={styles.menuList}>
           <Pressable
-            style={styles.menuItem}
+            style={[styles.menuItem, { borderColor: palette.border, backgroundColor: palette.surface }]}
             onPress={handleRenamePlant}
             accessibilityRole="button"
             accessibilityLabel={`Rename ${plant.name}`}>
@@ -522,7 +553,7 @@ export default function HomeScreen() {
             </ThemedText>
           </Pressable>
           <Pressable
-            style={styles.menuItem}
+            style={[styles.menuItem, { borderColor: palette.border, backgroundColor: palette.surface }]}
             onPress={handleArchivePlant}
             accessibilityRole="button"
             accessibilityLabel={`Archive ${plant.name}`}>
@@ -531,11 +562,13 @@ export default function HomeScreen() {
             </ThemedText>
           </Pressable>
           <Pressable
-            style={styles.menuItem}
+            style={[styles.menuItem, { borderColor: palette.border, backgroundColor: palette.surface }]}
             onPress={() => requestDeletePlant(plant)}
             accessibilityRole="button"
             accessibilityLabel={`Delete ${plant.name}`}>
-            <ThemedText type="defaultSemiBold" style={[styles.menuItemLabel, styles.menuItemDestructive]}>
+            <ThemedText
+              type="defaultSemiBold"
+              style={[styles.menuItemLabel, { color: palette.danger }]}>
               Delete plant
             </ThemedText>
           </Pressable>
@@ -590,11 +623,11 @@ export default function HomeScreen() {
         onCancel={handleCancelRename}
         onConfirm={handleConfirmRename}>
         <TextInput
-          style={styles.renameInput}
+          style={[styles.renameInput, { borderColor: palette.border, backgroundColor: palette.surface, color: palette.text }]}
           value={renameValue}
           onChangeText={setRenameValue}
           placeholder="New plant name"
-          placeholderTextColor="rgba(148, 163, 184, 0.7)"
+          placeholderTextColor={colorScheme === 'light' ? 'rgba(15, 52, 69, 0.35)' : 'rgba(228, 243, 250, 0.45)'}
           autoFocus
           returnKeyType="done"
           onSubmitEditing={handleConfirmRename}
@@ -643,6 +676,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     gap: 8,
+    borderWidth: 1,
   },
   tipCopy: {
     opacity: 0.85,
@@ -654,7 +688,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     alignItems: 'center',
-    backgroundColor: 'rgba(52, 211, 153, 0.2)',
   },
   logButtonCompact: {
     paddingVertical: 12,
@@ -694,8 +727,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
+    borderWidth: 1,
   },
   addLogButtonCompact: {
     flex: 1,
@@ -710,8 +742,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 38,
     borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.35)',
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -728,24 +759,24 @@ const styles = StyleSheet.create({
   emptyState: {
     marginTop: 48,
     paddingHorizontal: 24,
+    paddingVertical: 20,
     alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
   },
   editingBanner: {
     marginTop: 12,
     marginBottom: 8,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
     fontSize: 13,
   },
   renameInput: {
     borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
+    borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 16,
-    color: '#e2e8f0',
   },
   menuList: {
     gap: 8,
@@ -754,13 +785,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.3)',
+    borderWidth: 1,
   },
   menuItemLabel: {
     fontSize: 14,
-  },
-  menuItemDestructive: {
-    color: '#f87171',
   },
 });

@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface NumberInputProps {
   label: string;
@@ -23,6 +25,8 @@ export const NumberInput: React.FC<NumberInputProps> = ({
   onChange,
 }) => {
   const formattedValue = useMemo(() => (Number.isFinite(value) ? String(value) : '0'), [value]);
+  const colorScheme = useColorScheme() ?? 'light';
+  const palette = Colors[colorScheme];
 
   const applyChange = (next: number) => {
     let candidate = Number.isFinite(next) ? next : 0;
@@ -51,26 +55,32 @@ export const NumberInput: React.FC<NumberInputProps> = ({
         <ThemedText type="defaultSemiBold">{label}</ThemedText>
         <View style={styles.controls}>
           <Pressable
-            style={[styles.button, styles.stepButton]}
+            style={[styles.button, styles.stepButton, { backgroundColor: palette.accentSoft }]}
             onPress={() => applyChange(value - step)}
             accessibilityLabel={`Decrease ${label}`}>
-            <ThemedText type="default">-</ThemedText>
+            <ThemedText type="default" lightColor={palette.primary} darkColor={palette.accent}>
+              -
+            </ThemedText>
           </Pressable>
-          <View style={styles.inputWrapper}>
+          <View style={[styles.inputWrapper, { borderColor: palette.border, backgroundColor: palette.surface }]}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: palette.text }]}
               keyboardType="decimal-pad"
               value={formattedValue}
               onChangeText={handleTextChange}
               selectTextOnFocus
             />
-            {unit ? <ThemedText style={styles.unit}>{unit}</ThemedText> : null}
+            {unit ? (
+              <ThemedText style={[styles.unit, { color: palette.muted }]}>{unit}</ThemedText>
+            ) : null}
           </View>
           <Pressable
-            style={[styles.button, styles.stepButton]}
+            style={[styles.button, styles.stepButton, { backgroundColor: palette.accentSoft }]}
             onPress={() => applyChange(value + step)}
             accessibilityLabel={`Increase ${label}`}>
-            <ThemedText type="default">+</ThemedText>
+            <ThemedText type="default" lightColor={palette.primary} darkColor={palette.accent}>
+              +
+            </ThemedText>
           </Pressable>
         </View>
       </View>
@@ -95,7 +105,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
   },
   stepButton: {
     minWidth: 36,
@@ -107,9 +116,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginHorizontal: 8,
     borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.6)',
-    backgroundColor: 'rgba(15, 23, 42, 0.05)',
+    borderWidth: 1,
     minWidth: 100,
     justifyContent: 'center',
   },
@@ -121,7 +128,6 @@ const styles = StyleSheet.create({
   unit: {
     marginLeft: 6,
     fontSize: 12,
-    opacity: 0.7,
     textTransform: 'uppercase',
   },
 });

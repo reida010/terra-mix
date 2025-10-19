@@ -3,6 +3,8 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface ConfirmationDialogProps {
   visible: boolean;
@@ -29,6 +31,9 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   onConfirm,
   children,
 }) => {
+  const colorScheme = useColorScheme() ?? 'light';
+  const palette = Colors[colorScheme];
+
   return (
     <Modal
       visible={visible}
@@ -36,7 +41,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
       transparent
       onRequestClose={onCancel}>
       <View style={styles.backdrop}>
-        <ThemedView style={styles.dialog}>
+        <ThemedView style={[styles.dialog, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <ThemedText type="title" style={styles.title}>
             {title}
           </ThemedText>
@@ -45,7 +50,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           <View style={styles.actions}>
             <Pressable
               onPress={onCancel}
-              style={[styles.actionButton, styles.cancelButton]}
+              style={[styles.actionButton, styles.cancelButton, { borderColor: palette.border }]}
               accessibilityRole="button"
               accessibilityLabel={`Cancel ${title.toLowerCase()}`}>
               <ThemedText type="defaultSemiBold" style={styles.cancelLabel}>
@@ -57,7 +62,15 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
               onPress={onConfirm}
               style={[
                 styles.actionButton,
-                confirmTone === 'destructive' ? styles.destructiveButton : styles.confirmButton,
+                {
+                  borderColor: confirmTone === 'destructive' ? palette.danger : palette.accent,
+                  backgroundColor:
+                    confirmTone === 'destructive'
+                      ? colorScheme === 'light'
+                        ? 'rgba(199, 86, 96, 0.12)'
+                        : 'rgba(240, 149, 154, 0.18)'
+                      : palette.accentSoft,
+                },
                 confirmDisabled && styles.disabledButton,
               ]}
               accessibilityRole="button"
@@ -65,7 +78,9 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
               <ThemedText
                 type="defaultSemiBold"
                 style={[
-                  confirmTone === 'destructive' ? styles.destructiveLabel : styles.confirmLabel,
+                  confirmTone === 'destructive'
+                    ? [styles.destructiveLabel, { color: palette.danger }]
+                    : [styles.confirmLabel, { color: palette.primary }],
                   confirmDisabled && styles.disabledLabel,
                 ]}>
                 {confirmLabel}
@@ -92,6 +107,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     gap: 12,
+    borderWidth: 1,
   },
   title: {
     textAlign: 'center',
@@ -115,8 +131,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
+    borderWidth: 1,
   },
   cancelButton: {
     backgroundColor: 'transparent',
@@ -124,19 +139,11 @@ const styles = StyleSheet.create({
   cancelLabel: {
     fontSize: 14,
   },
-  confirmButton: {
-    backgroundColor: 'rgba(52, 211, 153, 0.18)',
-  },
   confirmLabel: {
     fontSize: 14,
   },
-  destructiveButton: {
-    backgroundColor: 'rgba(248, 113, 113, 0.12)',
-    borderColor: 'rgba(248, 113, 113, 0.4)',
-  },
   destructiveLabel: {
     fontSize: 14,
-    color: '#f87171',
   },
   disabledButton: {
     opacity: 0.5,

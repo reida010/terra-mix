@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { FEEDING_STAGE_LOOKUP } from '@/constants/feeding';
 import { WateringLogEntry } from '@/types/plant';
 import { formatMl } from '@/utils/feeding';
@@ -30,10 +32,13 @@ const formatNumber = (value?: number) => {
 };
 
 export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, onDelete }) => {
+  const colorScheme = useColorScheme() ?? 'light';
+  const palette = Colors[colorScheme];
+
   if (!logs.length) {
     return (
-      <ThemedView style={styles.emptyCard}>
-        <ThemedText style={styles.emptyText}>No waterings logged yet. Tap “Log watering” to add one.</ThemedText>
+      <ThemedView style={[styles.emptyCard, { backgroundColor: palette.surfaceMuted, borderColor: palette.border }]}>
+        <ThemedText style={[styles.emptyText, { color: palette.muted }]}>No waterings logged yet. Tap “Log watering” to add one.</ThemedText>
       </ThemedView>
     );
   }
@@ -53,17 +58,19 @@ export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, 
         }
         const additives = log.additives ?? {};
         return (
-          <ThemedView key={log.id} style={styles.card}>
+          <ThemedView
+            key={log.id}
+            style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             <View style={styles.headerRow}>
               <View style={styles.headerInfo}>
                 <ThemedText type="subtitle">{formatDate(log.createdAt)}</ThemedText>
-                <ThemedText style={styles.headerMeta}>
+                <ThemedText style={[styles.headerMeta, { color: palette.muted }]}>
                   {headerParts.join(' · ')}
                 </ThemedText>
               </View>
               <View style={styles.actions}>
                 <Pressable
-                  style={styles.actionButton}
+                  style={[styles.actionButton, { borderColor: palette.border }]}
                   onPress={() => onEdit(log)}
                   hitSlop={10}
                   accessibilityRole="button"
@@ -71,16 +78,16 @@ export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, 
                   <ThemedText style={styles.actionLabel}>Edit</ThemedText>
                 </Pressable>
                 <Pressable
-                  style={styles.actionButton}
+                  style={[styles.actionButton, { borderColor: palette.border }]}
                   onPress={() => onDelete(log)}
                   hitSlop={10}
                   accessibilityRole="button"
                   accessibilityLabel="Delete watering log">
-                  <ThemedText style={[styles.actionLabel, styles.deleteLabel]}>Delete</ThemedText>
+                  <ThemedText style={[styles.actionLabel, { color: palette.danger }]}>Delete</ThemedText>
                 </Pressable>
               </View>
             </View>
-            <ThemedText style={styles.stageLabel}>{stage?.name ?? log.stageId}</ThemedText>
+            <ThemedText style={[styles.stageLabel, { color: palette.muted }]}>{stage?.name ?? log.stageId}</ThemedText>
             <View style={styles.doseList}>
               {log.fertilizers.map(dose => (
                 <View key={dose.fertilizer} style={styles.doseRow}>
@@ -88,7 +95,7 @@ export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, 
                     <ThemedText type="defaultSemiBold" style={styles.doseName}>
                       {dose.label}
                     </ThemedText>
-                    <ThemedText style={styles.dosePerLiter}>{formatMl(dose.mlPerLiter)} per L</ThemedText>
+                    <ThemedText style={[styles.dosePerLiter, { color: palette.muted }]}>{formatMl(dose.mlPerLiter)} per L</ThemedText>
                   </View>
                   <ThemedText type="title" style={styles.doseAmount}>
                     {formatMl(dose.ml)}
@@ -97,22 +104,22 @@ export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, 
               ))}
             </View>
             {additives.rootStimulant || additives.fulvicAcid || additives.bloomBooster ? (
-              <View style={styles.additiveSection}>
+              <View style={[styles.additiveSection, { borderTopColor: palette.border }]}> 
                 <ThemedText type="defaultSemiBold">Additives</ThemedText>
                 {additives.rootStimulant ? (
-                  <ThemedText style={styles.additiveCopy}>
+                  <ThemedText style={[styles.additiveCopy, { color: palette.muted }]}>
                     Root stimulant: {formatMl(additives.rootStimulant.mlPerLiter)} per L ·{' '}
                     {formatMl(additives.rootStimulant.totalMl)} total
                   </ThemedText>
                 ) : null}
                 {additives.fulvicAcid ? (
-                  <ThemedText style={styles.additiveCopy}>
+                  <ThemedText style={[styles.additiveCopy, { color: palette.muted }]}>
                     Fulvic acid: {formatMl(additives.fulvicAcid.mlPerLiter)} per L ·{' '}
                     {formatMl(additives.fulvicAcid.totalMl)} total
                   </ThemedText>
                 ) : null}
                 {additives.bloomBooster ? (
-                  <ThemedText style={styles.additiveCopy}>
+                  <ThemedText style={[styles.additiveCopy, { color: palette.muted }]}>
                     Bloom stimulant: {additives.bloomBooster.intensity}% →
                     {' '}
                     {formatMl(additives.bloomBooster.mlPerLiter)} per L · {formatMl(additives.bloomBooster.totalMl)} total
@@ -135,6 +142,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     gap: 12,
+    borderWidth: 1,
   },
   headerRow: {
     flexDirection: 'row',
@@ -158,14 +166,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
+    borderWidth: 1,
   },
   actionLabel: {
     fontSize: 12,
-  },
-  deleteLabel: {
-    color: '#f87171',
   },
   stageLabel: {
     fontSize: 13,
@@ -188,7 +192,6 @@ const styles = StyleSheet.create({
   },
   dosePerLiter: {
     fontSize: 12,
-    opacity: 0.7,
     marginTop: 2,
   },
   doseAmount: {
@@ -197,7 +200,6 @@ const styles = StyleSheet.create({
   },
   additiveSection: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(148, 163, 184, 0.3)',
     paddingTop: 12,
     gap: 4,
   },
@@ -209,10 +211,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 24,
     alignItems: 'center',
+    borderWidth: 1,
   },
   emptyText: {
     fontSize: 13,
-    opacity: 0.8,
     textAlign: 'center',
   },
 });

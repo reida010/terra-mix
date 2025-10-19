@@ -3,6 +3,8 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { FEEDING_STAGES } from '@/constants/feeding';
 import { FeedingStageId } from '@/types/plant';
 
@@ -14,23 +16,28 @@ interface StagePickerProps {
 export const StagePicker: React.FC<StagePickerProps> = ({ value, onChange }) => {
   const [visible, setVisible] = useState(false);
   const selectedStage = useMemo(() => FEEDING_STAGES.find(stage => stage.id === value), [value]);
+  const colorScheme = useColorScheme() ?? 'light';
+  const palette = Colors[colorScheme];
 
   return (
     <View style={styles.container}>
       <ThemedText type="defaultSemiBold">Current feeding stage</ThemedText>
-      <Pressable style={styles.button} onPress={() => setVisible(true)} accessibilityRole="button">
+      <Pressable
+        style={[styles.button, { borderColor: palette.border, backgroundColor: palette.surface }]}
+        onPress={() => setVisible(true)}
+        accessibilityRole="button">
         <View>
           <ThemedText type="subtitle" style={styles.buttonLabel}>
             {selectedStage?.name ?? 'Select stage'}
           </ThemedText>
           {selectedStage?.description ? (
-            <ThemedText style={styles.buttonDescription}>{selectedStage.description}</ThemedText>
+            <ThemedText style={[styles.buttonDescription, { color: palette.muted }]}>{selectedStage.description}</ThemedText>
           ) : null}
         </View>
       </Pressable>
       <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
         <View style={styles.modalBackdrop}>
-          <ThemedView style={styles.modalContent}>
+          <ThemedView style={[styles.modalContent, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             <ThemedText type="subtitle" style={styles.modalTitle}>
               Choose stage
             </ThemedText>
@@ -43,14 +50,22 @@ export const StagePicker: React.FC<StagePickerProps> = ({ value, onChange }) => 
                     onChange(stage.id);
                     setVisible(false);
                   }}
-                  style={[styles.option, isSelected && styles.optionSelected]}>
+                  style={[
+                    styles.option,
+                    {
+                      borderColor: isSelected ? palette.accent : 'transparent',
+                      backgroundColor: isSelected ? palette.accentSoft : palette.surfaceMuted,
+                    },
+                  ]}>
                   <ThemedText type="defaultSemiBold">{stage.name}</ThemedText>
-                  <ThemedText style={styles.optionDescription}>{stage.description}</ThemedText>
+                  <ThemedText style={[styles.optionDescription, { color: palette.muted }]}>{stage.description}</ThemedText>
                 </Pressable>
               );
             })}
-            <Pressable style={[styles.option, styles.closeButton]} onPress={() => setVisible(false)}>
-              <ThemedText style={styles.closeLabel}>Cancel</ThemedText>
+            <Pressable
+              style={[styles.option, styles.closeButton, { borderColor: palette.border, backgroundColor: palette.surface }]}
+              onPress={() => setVisible(false)}>
+              <ThemedText style={[styles.closeLabel, { color: palette.accent }]}>Cancel</ThemedText>
             </Pressable>
           </ThemedView>
         </View>
@@ -67,9 +82,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 16,
     padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.6)',
-    backgroundColor: 'rgba(15, 23, 42, 0.05)',
+    borderWidth: 1,
   },
   buttonLabel: {
     textTransform: 'capitalize',
@@ -90,6 +103,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     gap: 12,
+    borderWidth: 1,
   },
   modalTitle: {
     textAlign: 'center',
@@ -97,12 +111,7 @@ const styles = StyleSheet.create({
   option: {
     padding: 12,
     borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'transparent',
-  },
-  optionSelected: {
-    borderColor: '#34d399',
-    backgroundColor: 'rgba(52, 211, 153, 0.12)',
+    borderWidth: 1,
   },
   optionDescription: {
     marginTop: 4,
@@ -111,7 +120,6 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     alignItems: 'center',
-    borderColor: 'rgba(148, 163, 184, 0.3)',
   },
   closeLabel: {
     fontSize: 16,
