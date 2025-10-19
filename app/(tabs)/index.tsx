@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { ConfirmationDialog } from '@/components/confirmation-dialog';
 import { AdditiveCard } from '@/components/additive-card';
@@ -28,6 +28,8 @@ export default function HomeScreen() {
     updateWateringLog,
     deleteWateringLog,
   } = usePlants();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 420;
   const activePlants = useMemo(() => plants.filter(plant => !plant.archivedAt), [plants]);
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [isLogging, setIsLogging] = useState(false);
@@ -357,7 +359,7 @@ export default function HomeScreen() {
           onAddPlant={() => addPlant()}
         />
       {isLogging ? (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView contentContainerStyle={[styles.scroll, isCompact && styles.scrollCompact]}>
           {isEditing && editingLog ? (
             <ThemedText style={styles.editingBanner}>
               Editing log from {new Date(editingLog.createdAt).toLocaleDateString()} at{' '}
@@ -462,28 +464,38 @@ export default function HomeScreen() {
             </ThemedText>
           </ThemedView>
 
-          <Pressable style={styles.logButton} onPress={handleSubmitLog} accessibilityRole="button">
-            <ThemedText type="title" style={styles.logButtonLabel}>
+          <Pressable
+            style={[styles.logButton, isCompact && styles.logButtonCompact]}
+            onPress={handleSubmitLog}
+            accessibilityRole="button">
+            <ThemedText
+              type={isCompact ? 'defaultSemiBold' : 'title'}
+              style={[styles.logButtonLabel, isCompact && styles.logButtonLabelCompact]}>
               {isEditing ? 'Save changes' : 'Log watering'} ({liters} L · {formStrength}% · {formatMl(totalMl)} nutrients)
             </ThemedText>
           </Pressable>
         </ScrollView>
       ) : (
-        <ScrollView contentContainerStyle={styles.historyScroll}>
-          <View style={styles.historyHeader}>
-            <ThemedText type="title">Watering history</ThemedText>
-            <View style={styles.historyActions}>
-              <Pressable style={styles.addLogButton} onPress={handleStartLogging} accessibilityRole="button">
-                <ThemedText type="defaultSemiBold" style={styles.addLogLabel}>
+        <ScrollView contentContainerStyle={[styles.historyScroll, isCompact && styles.historyScrollCompact]}>
+          <View style={[styles.historyHeader, isCompact && styles.historyHeaderCompact]}>
+            <ThemedText type={isCompact ? 'defaultSemiBold' : 'title'} style={isCompact && styles.historyTitleCompact}>
+              Watering history
+            </ThemedText>
+            <View style={[styles.historyActions, isCompact && styles.historyActionsCompact]}>
+              <Pressable
+                style={[styles.addLogButton, isCompact && styles.addLogButtonCompact]}
+                onPress={handleStartLogging}
+                accessibilityRole="button">
+                <ThemedText type="defaultSemiBold" style={[styles.addLogLabel, isCompact && styles.addLogLabelCompact]}>
                   + Log watering
                 </ThemedText>
               </Pressable>
               <Pressable
-                style={styles.menuButton}
+                style={[styles.menuButton, isCompact && styles.menuButtonCompact]}
                 onPress={openHistoryMenu}
                 accessibilityRole="button"
                 accessibilityLabel={`Open actions for ${plant.name}`}>
-                <ThemedText type="title" style={styles.menuLabel}>
+                <ThemedText type={isCompact ? 'defaultSemiBold' : 'title'} style={[styles.menuLabel, isCompact && styles.menuLabelCompact]}>
                   ⋯
                 </ThemedText>
               </Pressable>
@@ -605,11 +617,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 120,
   },
+  scrollCompact: {
+    paddingBottom: 80,
+  },
   historyScroll: {
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 48,
     gap: 12,
+  },
+  historyScrollCompact: {
+    paddingBottom: 32,
   },
   section: {
     marginTop: 12,
@@ -638,17 +656,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(52, 211, 153, 0.2)',
   },
+  logButtonCompact: {
+    paddingVertical: 12,
+    borderRadius: 16,
+  },
   logButtonLabel: {
     textAlign: 'center',
+  },
+  logButtonLabelCompact: {
+    fontSize: 16,
+    lineHeight: 22,
   },
   historyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  historyHeaderCompact: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  historyTitleCompact: {
+    fontSize: 20,
+    lineHeight: 24,
+  },
   historyActions: {
     flexDirection: 'row',
     gap: 8,
+  },
+  historyActionsCompact: {
+    width: '100%',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   addLogButton: {
     paddingHorizontal: 16,
@@ -657,8 +697,14 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(148, 163, 184, 0.4)',
   },
+  addLogButtonCompact: {
+    flex: 1,
+  },
   addLogLabel: {
     fontSize: 14,
+  },
+  addLogLabelCompact: {
+    textAlign: 'center',
   },
   menuButton: {
     width: 42,
@@ -669,8 +715,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  menuButtonCompact: {
+    width: 36,
+    height: 36,
+  },
   menuLabel: {
     marginTop: -4,
+  },
+  menuLabelCompact: {
+    marginTop: 0,
   },
   emptyState: {
     marginTop: 48,

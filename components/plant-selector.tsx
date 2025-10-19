@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
@@ -13,6 +13,10 @@ interface PlantSelectorProps {
 }
 
 export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId, onSelect, onAddPlant }) => {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 420;
+  const itemWidth = Math.min(Math.max(width * 0.45, 136), 200);
+
   return (
     <ScrollView
       horizontal
@@ -24,27 +28,42 @@ export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId
           <Pressable
             key={plant.id}
             onPress={() => onSelect(plant.id)}
-            style={[styles.item, isSelected && styles.itemSelected]}>
-            <View style={styles.itemContent}>
-              <ThemedText type="subtitle" style={styles.name}>
+            style={[
+              styles.item,
+              { width: isCompact ? itemWidth : 184 },
+              isCompact && styles.itemCompact,
+              isSelected && styles.itemSelected,
+            ]}>
+            <View style={[styles.itemContent, isCompact && styles.itemContentCompact]}>
+              <ThemedText type={isCompact ? 'defaultSemiBold' : 'subtitle'} style={[styles.name, isCompact && styles.nameCompact]}>
                 {plant.name}
               </ThemedText>
-              <ThemedText type="default" style={styles.meta}>
+              <ThemedText type="default" style={[styles.meta, isCompact && styles.metaCompact]}>
                 {plant.stageId}
               </ThemedText>
-              <ThemedText type="default" style={styles.meta}>
+              <ThemedText type="default" style={[styles.meta, isCompact && styles.metaCompact]}>
                 {plant.strength}% strength
               </ThemedText>
             </View>
           </Pressable>
         );
       })}
-      <Pressable onPress={onAddPlant} style={[styles.item, styles.addButton]} accessibilityRole="button">
+      <Pressable
+        onPress={onAddPlant}
+        style={[
+          styles.item,
+          styles.addButton,
+          { width: isCompact ? itemWidth : 184 },
+          isCompact && styles.itemCompact,
+        ]}
+        accessibilityRole="button">
         <View style={styles.addContent}>
-          <ThemedText type="title" style={styles.plus}>
+          <ThemedText type={isCompact ? 'subtitle' : 'title'} style={[styles.plus, isCompact && styles.plusCompact]}>
             +
           </ThemedText>
-          <ThemedText type="defaultSemiBold">New Plant</ThemedText>
+          <ThemedText type="defaultSemiBold" style={isCompact ? styles.addLabelCompact : undefined}>
+            New Plant
+          </ThemedText>
         </View>
       </Pressable>
     </ScrollView>
@@ -58,7 +77,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   item: {
-    width: 160,
     borderRadius: 16,
     marginRight: 12,
     overflow: 'hidden',
@@ -66,23 +84,36 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.1)',
   },
+  itemCompact: {
+    borderRadius: 14,
+  },
   itemSelected: {
     borderColor: '#34d399',
     borderWidth: 2,
   },
   itemContent: {
-    padding: 16,
+    padding: 14,
     height: '100%',
     justifyContent: 'space-between',
+  },
+  itemContentCompact: {
+    padding: 12,
   },
   name: {
     marginBottom: 4,
     textTransform: 'capitalize',
   },
+  nameCompact: {
+    fontSize: 16,
+    lineHeight: 20,
+  },
   meta: {
     fontSize: 12,
     opacity: 0.8,
     textTransform: 'capitalize',
+  },
+  metaCompact: {
+    fontSize: 11,
   },
   addButton: {
     justifyContent: 'center',
@@ -99,5 +130,12 @@ const styles = StyleSheet.create({
   plus: {
     fontSize: 32,
     lineHeight: 34,
+  },
+  plusCompact: {
+    fontSize: 24,
+    lineHeight: 26,
+  },
+  addLabelCompact: {
+    fontSize: 14,
   },
 });
