@@ -21,6 +21,14 @@ const formatDate = (iso: string) => {
   return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 };
 
+const formatNumber = (value?: number) => {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return null;
+  }
+  const fixed = value.toFixed(2);
+  return fixed.replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+};
+
 export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, onDelete }) => {
   if (!logs.length) {
     return (
@@ -34,13 +42,23 @@ export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, 
     <View style={styles.list}>
       {logs.map(log => {
         const stage = FEEDING_STAGE_LOOKUP[log.stageId];
+        const formattedPh = formatNumber(log.ph);
+        const formattedEc = formatNumber(log.ec);
+        const headerParts = [`${log.waterLiters} L`, `${log.strength}% strength`];
+        if (formattedPh) {
+          headerParts.push(`pH ${formattedPh}`);
+        }
+        if (formattedEc) {
+          headerParts.push(`EC ${formattedEc} mS/cm`);
+        }
+        const additives = log.additives ?? {};
         return (
           <ThemedView key={log.id} style={styles.card}>
             <View style={styles.headerRow}>
               <View style={styles.headerInfo}>
                 <ThemedText type="subtitle">{formatDate(log.createdAt)}</ThemedText>
                 <ThemedText style={styles.headerMeta}>
-                  {log.waterLiters} L · {log.strength}% strength
+                  {headerParts.join(' · ')}
                 </ThemedText>
               </View>
               <View style={styles.actions}>
@@ -78,26 +96,26 @@ export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, 
                 </View>
               ))}
             </View>
-            {log.additives.rootStimulant || log.additives.fulvicAcid || log.additives.bloomBooster ? (
+            {additives.rootStimulant || additives.fulvicAcid || additives.bloomBooster ? (
               <View style={styles.additiveSection}>
                 <ThemedText type="defaultSemiBold">Additives</ThemedText>
-                {log.additives.rootStimulant ? (
+                {additives.rootStimulant ? (
                   <ThemedText style={styles.additiveCopy}>
-                    Root stimulant: {formatMl(log.additives.rootStimulant.mlPerLiter)} per L ·{' '}
-                    {formatMl(log.additives.rootStimulant.totalMl)} total
+                    Root stimulant: {formatMl(additives.rootStimulant.mlPerLiter)} per L ·{' '}
+                    {formatMl(additives.rootStimulant.totalMl)} total
                   </ThemedText>
                 ) : null}
-                {log.additives.fulvicAcid ? (
+                {additives.fulvicAcid ? (
                   <ThemedText style={styles.additiveCopy}>
-                    Fulvic acid: {formatMl(log.additives.fulvicAcid.mlPerLiter)} per L ·{' '}
-                    {formatMl(log.additives.fulvicAcid.totalMl)} total
+                    Fulvic acid: {formatMl(additives.fulvicAcid.mlPerLiter)} per L ·{' '}
+                    {formatMl(additives.fulvicAcid.totalMl)} total
                   </ThemedText>
                 ) : null}
-                {log.additives.bloomBooster ? (
+                {additives.bloomBooster ? (
                   <ThemedText style={styles.additiveCopy}>
-                    Bloom stimulant: {log.additives.bloomBooster.intensity}% →
+                    Bloom stimulant: {additives.bloomBooster.intensity}% →
                     {' '}
-                    {formatMl(log.additives.bloomBooster.mlPerLiter)} per L · {formatMl(log.additives.bloomBooster.totalMl)} total
+                    {formatMl(additives.bloomBooster.mlPerLiter)} per L · {formatMl(additives.bloomBooster.totalMl)} total
                   </ThemedText>
                 ) : null}
               </View>

@@ -4,6 +4,7 @@ export const FERTILIZER_LABELS: Record<FertilizerId, string> = {
   grow: 'TriPart Grow',
   micro: 'TriPart Micro',
   bloom: 'TriPart Bloom',
+  finalPart: 'Final Part',
 };
 
 export const FEEDING_STAGES: FeedingStage[] = [
@@ -72,9 +73,7 @@ export const FEEDING_STAGES: FeedingStage[] = [
     name: 'Ripen / Final',
     description: 'Final ripening period before flush.',
     rates: [
-      { fertilizer: 'grow', mlPerLiter: 0.3 },
-      { fertilizer: 'micro', mlPerLiter: 0.8 },
-      { fertilizer: 'bloom', mlPerLiter: 1.8 },
+      { fertilizer: 'finalPart', mlPerLiter: 4 },
     ],
   },
 ];

@@ -15,6 +15,9 @@ import { usePlants } from '@/context/PlantContext';
 import { FeedingStageId, PlantState, WateringLogEntry } from '@/types/plant';
 import { AdditiveDoseSummary, calculateAdditiveDoses, calculateFertilizerDoses, formatMl } from '@/utils/feeding';
 
+const DEFAULT_PH = 6;
+const DEFAULT_EC = 1.2;
+
 export default function HomeScreen() {
   const {
     plants,
@@ -34,6 +37,8 @@ export default function HomeScreen() {
   const [formStage, setFormStage] = useState<FeedingStageId>(FEEDING_STAGES[0].id);
   const [formStrength, setFormStrength] = useState<number>(75);
   const [formWater, setFormWater] = useState<number>(3);
+  const [formPh, setFormPh] = useState<number>(DEFAULT_PH);
+  const [formEc, setFormEc] = useState<number>(DEFAULT_EC);
   const [pendingArchive, setPendingArchive] = useState<PlantState | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PlantState | null>(null);
   const [pendingLogDelete, setPendingLogDelete] = useState<{
@@ -42,6 +47,7 @@ export default function HomeScreen() {
   } | null>(null);
   const [pendingRename, setPendingRename] = useState<PlantState | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [historyMenuOpen, setHistoryMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!selectedId && activePlants.length > 0) {
@@ -64,10 +70,16 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!plant) return;
+    const lastLog = plant.logs[0];
+    const fallbackPh = typeof lastLog?.ph === 'number' ? lastLog.ph : DEFAULT_PH;
+    const fallbackEc = typeof lastLog?.ec === 'number' ? lastLog.ec : DEFAULT_EC;
+
     if (!isLogging) {
       setFormStage(plant.stageId);
       setFormStrength(plant.strength);
       setFormWater(plant.preferredWaterLiters);
+      setFormPh(fallbackPh);
+      setFormEc(fallbackEc);
       setEditingLog(null);
       return;
     }
@@ -76,12 +88,22 @@ export default function HomeScreen() {
       setFormStage(editingLog.stageId);
       setFormStrength(editingLog.strength);
       setFormWater(editingLog.waterLiters);
+      setFormPh(typeof editingLog.ph === 'number' ? editingLog.ph : fallbackPh);
+      setFormEc(typeof editingLog.ec === 'number' ? editingLog.ec : fallbackEc);
     } else {
       setFormStage(plant.stageId);
       setFormStrength(plant.strength);
       setFormWater(plant.preferredWaterLiters);
+      setFormPh(fallbackPh);
+      setFormEc(fallbackEc);
     }
   }, [plant, isLogging, editingLog]);
+
+  useEffect(() => {
+    if (!plant) {
+      setHistoryMenuOpen(false);
+    }
+  }, [plant]);
 
   const liters = formWater > 0 ? formWater : 1;
 
@@ -139,11 +161,13 @@ export default function HomeScreen() {
 
   const handleArchivePlant = () => {
     if (!plant) return;
+    setHistoryMenuOpen(false);
     setPendingArchive(plant);
   };
 
   const handleRenamePlant = () => {
     if (!plant) return;
+    setHistoryMenuOpen(false);
     setPendingRename(plant);
     setRenameValue(plant.name);
   };
@@ -164,8 +188,12 @@ export default function HomeScreen() {
   };
 
   const requestDeletePlant = (plantState: PlantState) => {
+    setHistoryMenuOpen(false);
     setPendingDelete(plantState);
   };
+
+  const openHistoryMenu = () => setHistoryMenuOpen(true);
+  const closeHistoryMenu = () => setHistoryMenuOpen(false);
 
   const handleConfirmDeletePlant = () => {
     if (!pendingDelete) return;
@@ -231,6 +259,10 @@ export default function HomeScreen() {
   const handleSubmitLog = () => {
     if (!plant || !draftPlant) return;
     const safeLiters = liters > 0 ? liters : 1;
+    const safePh = Number.isFinite(formPh) ? formPh : DEFAULT_PH;
+    const safeEc = Number.isFinite(formEc) ? formEc : DEFAULT_EC;
+    const normalizedPh = Number(safePh.toFixed(2));
+    const normalizedEc = Number(safeEc.toFixed(2));
 
     if (editingLog) {
       updateWateringLog(plant.id, editingLog.id, entry => ({
@@ -238,6 +270,8 @@ export default function HomeScreen() {
         waterLiters: safeLiters,
         strength: formStrength,
         stageId: formStage,
+        ph: normalizedPh,
+        ec: normalizedEc,
         fertilizers: doses,
         additives: additiveDoses,
       }));
@@ -248,6 +282,8 @@ export default function HomeScreen() {
         waterLiters: safeLiters,
         strength: formStrength,
         stageId: formStage,
+        ph: normalizedPh,
+        ec: normalizedEc,
         fertilizers: doses,
         additives: additiveDoses,
       };
@@ -363,6 +399,22 @@ export default function HomeScreen() {
               step={0.5}
               onChange={handleWaterChange}
             />
+            <NumberInput
+              label="pH"
+              value={formPh}
+              minimum={0}
+              maximum={14}
+              step={0.1}
+              onChange={setFormPh}
+            />
+            <NumberInput
+              label="EC"
+              unit="mS/cm"
+              value={formEc}
+              minimum={0}
+              step={0.1}
+              onChange={setFormEc}
+            />
             <ThemedText style={styles.helperCopy}>
               The strength slider multiplies the base feeding chart. 100% equals the published Terra Aquatica schedule.
             </ThemedText>
@@ -437,36 +489,18 @@ export default function HomeScreen() {
           <View style={styles.historyHeader}>
             <ThemedText type="title">Watering history</ThemedText>
             <View style={styles.historyActions}>
-              <Pressable
-                style={styles.renameButton}
-                onPress={handleRenamePlant}
-                accessibilityRole="button"
-                accessibilityLabel={`Rename ${plant.name}`}>
-                <ThemedText type="defaultSemiBold" style={styles.renameLabel}>
-                  Rename
-                </ThemedText>
-              </Pressable>
-              <Pressable
-                style={styles.archiveButton}
-                onPress={handleArchivePlant}
-                accessibilityRole="button"
-                accessibilityLabel={`Archive ${plant.name}`}>
-                <ThemedText type="defaultSemiBold" style={styles.archiveLabel}>
-                  Archive
-                </ThemedText>
-              </Pressable>
-              <Pressable
-                style={styles.deletePlantButton}
-                onPress={() => requestDeletePlant(plant)}
-                accessibilityRole="button"
-                accessibilityLabel={`Delete ${plant.name}`}>
-                <ThemedText type="defaultSemiBold" style={styles.deletePlantLabel}>
-                  × Delete
-                </ThemedText>
-              </Pressable>
               <Pressable style={styles.addLogButton} onPress={handleStartLogging} accessibilityRole="button">
                 <ThemedText type="defaultSemiBold" style={styles.addLogLabel}>
                   + Log watering
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                style={styles.menuButton}
+                onPress={openHistoryMenu}
+                accessibilityRole="button"
+                accessibilityLabel={`Open actions for ${plant.name}`}>
+                <ThemedText type="title" style={styles.menuLabel}>
+                  ⋯
                 </ThemedText>
               </Pressable>
             </View>
@@ -475,6 +509,42 @@ export default function HomeScreen() {
         </ScrollView>
       )}
       </ThemedView>
+      <ConfirmationDialog
+        visible={historyMenuOpen}
+        title={`${plant.name} options`}
+        confirmLabel="Close"
+        onCancel={closeHistoryMenu}
+        onConfirm={closeHistoryMenu}>
+        <View style={styles.menuList}>
+          <Pressable
+            style={styles.menuItem}
+            onPress={handleRenamePlant}
+            accessibilityRole="button"
+            accessibilityLabel={`Rename ${plant.name}`}>
+            <ThemedText type="defaultSemiBold" style={styles.menuItemLabel}>
+              Rename plant
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            style={styles.menuItem}
+            onPress={handleArchivePlant}
+            accessibilityRole="button"
+            accessibilityLabel={`Archive ${plant.name}`}>
+            <ThemedText type="defaultSemiBold" style={styles.menuItemLabel}>
+              Archive plant
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => requestDeletePlant(plant)}
+            accessibilityRole="button"
+            accessibilityLabel={`Delete ${plant.name}`}>
+            <ThemedText type="defaultSemiBold" style={[styles.menuItemLabel, styles.menuItemDestructive]}>
+              Delete plant
+            </ThemedText>
+          </Pressable>
+        </View>
+      </ConfirmationDialog>
       <ConfirmationDialog
         visible={Boolean(pendingArchive)}
         title="Archive plant"
@@ -596,27 +666,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  renameButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
-  },
-  renameLabel: {
-    fontSize: 14,
-  },
-  deletePlantButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.35)',
-  },
-  deletePlantLabel: {
-    fontSize: 14,
-    color: '#f87171',
-  },
   addLogButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -627,16 +676,17 @@ const styles = StyleSheet.create({
   addLogLabel: {
     fontSize: 14,
   },
-  archiveButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  menuButton: {
+    width: 42,
+    height: 38,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(248, 113, 113, 0.4)',
+    borderColor: 'rgba(148, 163, 184, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  archiveLabel: {
-    fontSize: 14,
-    color: '#f87171',
+  menuLabel: {
+    marginTop: -4,
   },
   emptyState: {
     marginTop: 48,
@@ -659,5 +709,21 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
     color: '#e2e8f0',
+  },
+  menuList: {
+    gap: 8,
+  },
+  menuItem: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(148, 163, 184, 0.3)',
+  },
+  menuItemLabel: {
+    fontSize: 14,
+  },
+  menuItemDestructive: {
+    color: '#f87171',
   },
 });

@@ -1,4 +1,4 @@
-export type FertilizerId = 'grow' | 'micro' | 'bloom';
+export type FertilizerId = 'grow' | 'micro' | 'bloom' | 'finalPart';
 
 export type FeedingStageId =
   | 'seedling'
@@ -68,6 +68,8 @@ export interface WateringLogEntry {
   waterLiters: number;
   strength: number;
   stageId: FeedingStageId;
+  ph?: number;
+  ec?: number;
   fertilizers: LoggedFertilizerDose[];
   additives: {
     rootStimulant?: LoggedAdditiveDose;
