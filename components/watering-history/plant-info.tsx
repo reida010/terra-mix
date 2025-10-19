@@ -1,8 +1,14 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  View,
+  type PressableStateCallbackType,
+} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
+import { withAlpha } from '@/utils/color';
 import { FEEDING_STAGE_LOOKUP } from '@/constants/feeding';
 import { PlantState } from '@/types/plant';
 
@@ -128,11 +134,32 @@ interface ActionButtonProps {
 }
 
 function ActionButton({ label, palette, tone = 'default', accessibilityLabel, onPress }: ActionButtonProps) {
-  const textColor = tone === 'destructive' ? palette.danger : palette.text;
+  const isDestructive = tone === 'destructive';
+  const textColor = isDestructive ? palette.danger : palette.text;
+  const borderColor = isDestructive ? palette.danger : palette.border;
+  const baseBackground = isDestructive ? withAlpha(palette.danger, 0.08) : palette.surfaceMuted;
+  const hoverBackground = isDestructive ? withAlpha(palette.danger, 0.16) : palette.surface;
+  const activeBackground = isDestructive ? withAlpha(palette.danger, 0.24) : palette.primarySoft;
+
+  const resolveBackground = ({ hovered, pressed }: PressableStateCallbackType) => {
+    if (pressed) {
+      return activeBackground;
+    }
+    if (hovered) {
+      return hoverBackground;
+    }
+    return baseBackground;
+  };
 
   return (
     <Pressable
-      style={[styles.actionButton, { borderColor: palette.border, backgroundColor: palette.surfaceMuted }]}
+      style={({ hovered, pressed }) => [
+        styles.actionButton,
+        {
+          borderColor,
+          backgroundColor: resolveBackground({ hovered, pressed }),
+        },
+      ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}>
