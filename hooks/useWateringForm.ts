@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { FEEDING_STAGES } from '@/constants/feeding';
 import { FeedingStageId, PlantState, WateringLogEntry } from '@/types/plant';
@@ -54,6 +54,21 @@ export function useWateringForm({
   const [ph, setPhState] = useState<number>(DEFAULT_FORM_PH);
   const [ec, setEcState] = useState<number>(DEFAULT_FORM_EC);
 
+  const previousPlantId = useRef<string | null>(null);
+  const previousPlantStage = useRef<FeedingStageId | null>(null);
+  const previousEditingLogId = useRef<string | null>(null);
+  const previousIsLogging = useRef<boolean>(isLogging);
+  const strengthRef = useRef<number>(strength);
+  const waterRef = useRef<number>(waterLiters);
+
+  useEffect(() => {
+    strengthRef.current = strength;
+  }, [strength]);
+
+  useEffect(() => {
+    waterRef.current = waterLiters;
+  }, [waterLiters]);
+
   useEffect(() => {
     if (!plant) {
       setStageIdState(DEFAULT_STAGE);
@@ -61,6 +76,10 @@ export function useWateringForm({
       setWaterLitersState(3);
       setPhState(DEFAULT_FORM_PH);
       setEcState(DEFAULT_FORM_EC);
+      previousPlantId.current = null;
+      previousPlantStage.current = null;
+      previousEditingLogId.current = null;
+      previousIsLogging.current = isLogging;
       return;
     }
 
@@ -68,29 +87,50 @@ export function useWateringForm({
     const fallbackPh = getLatestReading(lastLog?.ph, DEFAULT_FORM_PH);
     const fallbackEc = getLatestReading(lastLog?.ec, DEFAULT_FORM_EC);
 
+    const firstRun = previousPlantId.current === null;
+    const plantChanged = firstRun || plant.id !== previousPlantId.current;
+    const plantStageChanged = firstRun || plant.stageId !== previousPlantStage.current;
+    const editingLogChanged = firstRun || (editingLog?.id ?? null) !== previousEditingLogId.current;
+    const loggingToggled = previousIsLogging.current !== isLogging;
+
     if (!isLogging) {
-      setStageIdState(plant.stageId);
-      setStrengthState(plant.strength);
-      setWaterLitersState(plant.preferredWaterLiters);
-      setPhState(fallbackPh);
-      setEcState(fallbackEc);
-      return;
+      if (plantChanged || plantStageChanged || loggingToggled) {
+        setStageIdState(plant.stageId);
+      }
+      if (plantChanged || loggingToggled || strengthRef.current !== plant.strength) {
+        setStrengthState(plant.strength);
+      }
+      if (plantChanged || loggingToggled || waterRef.current !== plant.preferredWaterLiters) {
+        setWaterLitersState(plant.preferredWaterLiters);
+      }
+      if (plantChanged || loggingToggled) {
+        setPhState(fallbackPh);
+        setEcState(fallbackEc);
+      }
+    } else if (editingLog) {
+      if (plantChanged || editingLogChanged) {
+        setStageIdState(editingLog.stageId);
+        setStrengthState(editingLog.strength);
+        setWaterLitersState(editingLog.waterLiters);
+        setPhState(getLatestReading(editingLog.ph, fallbackPh));
+        setEcState(getLatestReading(editingLog.ec, fallbackEc));
+      }
+    } else {
+      if (plantChanged || plantStageChanged || loggingToggled || editingLogChanged) {
+        setStageIdState(plant.stageId);
+      }
+      if (plantChanged || loggingToggled || editingLogChanged) {
+        setStrengthState(plant.strength);
+        setWaterLitersState(plant.preferredWaterLiters);
+        setPhState(fallbackPh);
+        setEcState(fallbackEc);
+      }
     }
 
-    if (editingLog) {
-      setStageIdState(editingLog.stageId);
-      setStrengthState(editingLog.strength);
-      setWaterLitersState(editingLog.waterLiters);
-      setPhState(getLatestReading(editingLog.ph, fallbackPh));
-      setEcState(getLatestReading(editingLog.ec, fallbackEc));
-      return;
-    }
-
-    setStageIdState(plant.stageId);
-    setStrengthState(plant.strength);
-    setWaterLitersState(plant.preferredWaterLiters);
-    setPhState(fallbackPh);
-    setEcState(fallbackEc);
+    previousPlantId.current = plant.id;
+    previousPlantStage.current = plant.stageId;
+    previousEditingLogId.current = editingLog?.id ?? null;
+    previousIsLogging.current = isLogging;
   }, [plant, editingLog, isLogging]);
 
   const handleStageChange = useCallback(
