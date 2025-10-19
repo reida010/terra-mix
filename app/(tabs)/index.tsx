@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { ConfirmationDialog } from '@/components/confirmation-dialog';
 import { AdditiveCard } from '@/components/additive-card';
 import { FertilizerSummary } from '@/components/fertilizer-summary';
 import { NumberInput } from '@/components/number-input';
@@ -11,7 +12,7 @@ import { ThemedView } from '@/components/themed-view';
 import { WateringHistory } from '@/components/watering-history';
 import { BLOOM_BOOSTER_RECOMMENDATIONS, FEEDING_STAGES } from '@/constants/feeding';
 import { usePlants } from '@/context/PlantContext';
-import { FeedingStageId, WateringLogEntry } from '@/types/plant';
+import { FeedingStageId, PlantState, WateringLogEntry } from '@/types/plant';
 import { AdditiveDoseSummary, calculateAdditiveDoses, calculateFertilizerDoses, formatMl } from '@/utils/feeding';
 
 export default function HomeScreen() {
@@ -33,6 +34,12 @@ export default function HomeScreen() {
   const [formStage, setFormStage] = useState<FeedingStageId>(FEEDING_STAGES[0].id);
   const [formStrength, setFormStrength] = useState<number>(75);
   const [formWater, setFormWater] = useState<number>(3);
+  const [pendingArchive, setPendingArchive] = useState<PlantState | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PlantState | null>(null);
+  const [pendingLogDelete, setPendingLogDelete] = useState<{
+    plantId: string;
+    log: WateringLogEntry;
+  } | null>(null);
 
   useEffect(() => {
     if (!selectedId && activePlants.length > 0) {
@@ -128,45 +135,43 @@ export default function HomeScreen() {
     }
   };
 
-  const confirmDeletePlant = (id: string) => {
-    const target = plants.find(p => p.id === id);
-    Alert.alert(
-      'Delete plant',
-      target ? `Remove ${target.name}? This cannot be undone.` : 'Remove this plant?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            deletePlant(id);
-            if (id === selectedId) {
-              setSelectedId(undefined);
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const handleArchivePlant = () => {
     if (!plant) return;
-    Alert.alert(
-      'Archive plant',
-      `Archive ${plant.name}? You can restore it from the Archive tab.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Archive',
-          style: 'destructive',
-          onPress: () => {
-            archivePlant(plant.id, true);
-            setSelectedId(undefined);
-            setIsLogging(false);
-          },
-        },
-      ]
-    );
+    setPendingArchive(plant);
+  };
+
+  const handleConfirmArchive = () => {
+    if (!pendingArchive) return;
+    archivePlant(pendingArchive.id, true);
+    if (pendingArchive.id === selectedId) {
+      setSelectedId(undefined);
+    }
+    setIsLogging(false);
+    setEditingLog(null);
+    setPendingArchive(null);
+  };
+
+  const handleCancelArchive = () => {
+    setPendingArchive(null);
+  };
+
+  const requestDeletePlant = (plantState: PlantState) => {
+    setPendingDelete(plantState);
+  };
+
+  const handleConfirmDeletePlant = () => {
+    if (!pendingDelete) return;
+    deletePlant(pendingDelete.id);
+    if (pendingDelete.id === selectedId) {
+      setSelectedId(undefined);
+      setIsLogging(false);
+      setEditingLog(null);
+    }
+    setPendingDelete(null);
+  };
+
+  const handleCancelDeletePlant = () => {
+    setPendingDelete(null);
   };
 
   const handleStartLogging = () => {
@@ -181,14 +186,21 @@ export default function HomeScreen() {
 
   const handleDeleteLog = (log: WateringLogEntry) => {
     if (!plant) return;
-    Alert.alert('Delete watering', 'Remove this watering entry?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => deleteWateringLog(plant.id, log.id),
-      },
-    ]);
+    setPendingLogDelete({ plantId: plant.id, log });
+  };
+
+  const handleConfirmDeleteLog = () => {
+    if (!pendingLogDelete) return;
+    deleteWateringLog(pendingLogDelete.plantId, pendingLogDelete.log.id);
+    if (editingLog && editingLog.id === pendingLogDelete.log.id) {
+      setEditingLog(null);
+      setIsLogging(false);
+    }
+    setPendingLogDelete(null);
+  };
+
+  const handleCancelDeleteLog = () => {
+    setPendingLogDelete(null);
   };
 
   const handleSubmitLog = () => {
@@ -231,18 +243,59 @@ export default function HomeScreen() {
 
   if (!plant) {
     return (
-      <ThemedView style={styles.container}>
-        <PlantSelector
-          plants={activePlants}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          onAddPlant={() => addPlant()}
-          onDelete={confirmDeletePlant}
+      <>
+        <ThemedView style={styles.container}>
+          <PlantSelector
+            plants={activePlants}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onAddPlant={() => addPlant()}
+          />
+          <View style={styles.emptyState}>
+            <ThemedText>No active plants yet. Add one or restore from the Archive tab.</ThemedText>
+          </View>
+        </ThemedView>
+        <ConfirmationDialog
+          visible={Boolean(pendingArchive)}
+          title="Archive plant"
+          message={
+            pendingArchive
+              ? `Archive ${pendingArchive.name}? You can restore it from the Archive tab.`
+              : 'Archive this plant? You can restore it later.'
+          }
+          confirmLabel="Archive"
+          onCancel={handleCancelArchive}
+          onConfirm={handleConfirmArchive}
         />
-        <View style={styles.emptyState}>
-          <ThemedText>No active plants yet. Add one or restore from the Archive tab.</ThemedText>
-        </View>
-      </ThemedView>
+        <ConfirmationDialog
+          visible={Boolean(pendingDelete)}
+          title="Delete plant"
+          message={
+            pendingDelete
+              ? `Permanently delete ${pendingDelete.name}? This cannot be undone.`
+              : 'Permanently delete this plant? This cannot be undone.'
+          }
+          confirmLabel="Delete"
+          confirmTone="destructive"
+          onCancel={handleCancelDeletePlant}
+          onConfirm={handleConfirmDeletePlant}
+        />
+        <ConfirmationDialog
+          visible={Boolean(pendingLogDelete)}
+          title="Delete watering"
+          message={
+            pendingLogDelete
+              ? `Remove the watering logged on ${new Date(
+                  pendingLogDelete.log.createdAt
+                ).toLocaleDateString()}? This cannot be undone.`
+              : 'Remove this watering entry? This cannot be undone.'
+          }
+          confirmLabel="Delete"
+          confirmTone="destructive"
+          onCancel={handleCancelDeleteLog}
+          onConfirm={handleConfirmDeleteLog}
+        />
+      </>
     );
   }
 
@@ -250,14 +303,14 @@ export default function HomeScreen() {
   const isEditing = Boolean(editingLog);
 
   return (
-    <ThemedView style={styles.container}>
-      <PlantSelector
-        plants={activePlants}
-        selectedId={plant.id}
-        onSelect={setSelectedId}
-        onAddPlant={() => addPlant()}
-        onDelete={confirmDeletePlant}
-      />
+    <>
+      <ThemedView style={styles.container}>
+        <PlantSelector
+          plants={activePlants}
+          selectedId={plant.id}
+          onSelect={setSelectedId}
+          onAddPlant={() => addPlant()}
+        />
       {isLogging ? (
         <ScrollView contentContainerStyle={styles.scroll}>
           {isEditing && editingLog ? (
@@ -368,6 +421,15 @@ export default function HomeScreen() {
                   Archive
                 </ThemedText>
               </Pressable>
+              <Pressable
+                style={styles.deletePlantButton}
+                onPress={() => requestDeletePlant(plant)}
+                accessibilityRole="button"
+                accessibilityLabel={`Delete ${plant.name}`}>
+                <ThemedText type="defaultSemiBold" style={styles.deletePlantLabel}>
+                  × Delete
+                </ThemedText>
+              </Pressable>
               <Pressable style={styles.addLogButton} onPress={handleStartLogging} accessibilityRole="button">
                 <ThemedText type="defaultSemiBold" style={styles.addLogLabel}>
                   + Log watering
@@ -378,7 +440,48 @@ export default function HomeScreen() {
           <WateringHistory logs={plant.logs} onEdit={handleEditLog} onDelete={handleDeleteLog} />
         </ScrollView>
       )}
-    </ThemedView>
+      </ThemedView>
+      <ConfirmationDialog
+        visible={Boolean(pendingArchive)}
+        title="Archive plant"
+        message={
+          pendingArchive
+            ? `Archive ${pendingArchive.name}? You can restore it from the Archive tab.`
+            : 'Archive this plant? You can restore it later.'
+        }
+        confirmLabel="Archive"
+        onCancel={handleCancelArchive}
+        onConfirm={handleConfirmArchive}
+      />
+      <ConfirmationDialog
+        visible={Boolean(pendingDelete)}
+        title="Delete plant"
+        message={
+          pendingDelete
+            ? `Permanently delete ${pendingDelete.name}? This cannot be undone.`
+            : 'Permanently delete this plant? This cannot be undone.'
+        }
+        confirmLabel="Delete"
+        confirmTone="destructive"
+        onCancel={handleCancelDeletePlant}
+        onConfirm={handleConfirmDeletePlant}
+      />
+      <ConfirmationDialog
+        visible={Boolean(pendingLogDelete)}
+        title="Delete watering"
+        message={
+          pendingLogDelete
+            ? `Remove the watering logged on ${new Date(
+                pendingLogDelete.log.createdAt
+              ).toLocaleDateString()}? This cannot be undone.`
+            : 'Remove this watering entry? This cannot be undone.'
+        }
+        confirmLabel="Delete"
+        confirmTone="destructive"
+        onCancel={handleCancelDeleteLog}
+        onConfirm={handleConfirmDeleteLog}
+      />
+    </>
   );
 }
 
@@ -439,6 +542,17 @@ const styles = StyleSheet.create({
   historyActions: {
     flexDirection: 'row',
     gap: 8,
+  },
+  deletePlantButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(148, 163, 184, 0.35)',
+  },
+  deletePlantLabel: {
+    fontSize: 14,
+    color: '#f87171',
   },
   addLogButton: {
     paddingHorizontal: 16,

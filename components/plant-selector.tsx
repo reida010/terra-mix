@@ -10,10 +10,9 @@ interface PlantSelectorProps {
   selectedId?: string;
   onSelect: (id: string) => void;
   onAddPlant: () => void;
-  onDelete?: (id: string) => void;
 }
 
-export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId, onSelect, onAddPlant, onDelete }) => {
+export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId, onSelect, onAddPlant }) => {
   return (
     <ScrollView
       horizontal
@@ -37,19 +36,6 @@ export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId
                 {plant.strength}% strength
               </ThemedText>
             </View>
-            {onDelete ? (
-              <Pressable
-                style={styles.deleteButton}
-                onPress={event => {
-                  event.stopPropagation();
-                  onDelete(plant.id);
-                }}
-                hitSlop={16}
-                accessibilityRole="button"
-                accessibilityLabel={`Delete ${plant.name}`}>
-                <ThemedText style={styles.deleteLabel}>×</ThemedText>
-              </Pressable>
-            ) : null}
           </Pressable>
         );
       })}
@@ -92,21 +78,6 @@ const styles = StyleSheet.create({
   name: {
     marginBottom: 4,
     textTransform: 'capitalize',
-  },
-  deleteButton: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-  },
-  deleteLabel: {
-    fontSize: 18,
-    lineHeight: 20,
   },
   meta: {
     fontSize: 12,
