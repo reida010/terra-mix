@@ -11,6 +11,7 @@ import {
 } from '@/constants/feeding';
 import { AdditivesState, PlantState, WateringLogEntry } from '@/types/plant';
 import { differenceInDays } from '@/utils/dates';
+import { fetchPlantsFromCloud, persistPlantsToCloud } from '@/services/firebasePlants';
 import { storageGet, storageSet } from '@/utils/storage';
 
 const STORAGE_KEY = 'terra-mix::plants';
@@ -136,33 +137,88 @@ export const PlantProvider: React.FC<React.PropsWithChildren> = ({ children }) =
   const [plants, setPlants] = useState<PlantState[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const syncToCloud = useCallback((next: PlantState[]) => {
+    void persistPlantsToCloud(next).catch(error => {
+      console.warn('Failed to sync plants to Firebase', error);
+    });
+  }, []);
+
   useEffect(() => {
-    const loadPlants = async () => {
+    let isMounted = true;
+
+    const loadLocalPlants = async () => {
       try {
         const stored = await storageGet<PlantState[]>(STORAGE_KEY);
         if (Array.isArray(stored) && stored.length > 0) {
           const normalized = normalizePlantsList(stored);
-          setPlants(normalized);
+          if (isMounted) {
+            setPlants(normalized);
+          }
           await storageSet(STORAGE_KEY, normalized);
+          syncToCloud(normalized);
         } else {
           const defaults = normalizePlantsList(createDefaultPlants());
-          setPlants(defaults);
+          if (isMounted) {
+            setPlants(defaults);
+          }
           await storageSet(STORAGE_KEY, defaults);
+          syncToCloud(defaults);
         }
       } catch (error) {
         console.warn('Failed to load plants from storage', error);
         const defaults = normalizePlantsList(createDefaultPlants());
-        setPlants(defaults);
+        if (isMounted) {
+          setPlants(defaults);
+        }
         await storageSet(STORAGE_KEY, defaults);
+        syncToCloud(defaults);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    loadPlants();
-  }, []);
+    const loadCloudPlants = async () => {
+      try {
+        const cloudPlants = await fetchPlantsFromCloud();
+        if (Array.isArray(cloudPlants) && cloudPlants.length > 0) {
+          const normalized = normalizePlantsList(cloudPlants);
+          if (isMounted) {
+            setPlants(normalized);
+          }
+          await storageSet(STORAGE_KEY, normalized);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch plants from Firebase', error);
+      }
+    };
+
+    const bootstrap = async () => {
+      await loadLocalPlants();
+      await loadCloudPlants();
+    };
+
+    void bootstrap();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [syncToCloud]);
 
   const refresh = useCallback(async () => {
+    try {
+      const cloudPlants = await fetchPlantsFromCloud();
+      if (Array.isArray(cloudPlants) && cloudPlants.length > 0) {
+        const normalized = normalizePlantsList(cloudPlants);
+        setPlants(normalized);
+        await storageSet(STORAGE_KEY, normalized);
+        return;
+      }
+    } catch (error) {
+      console.warn('Failed to refresh plants from Firebase', error);
+    }
+
     try {
       const stored = await storageGet<PlantState[]>(STORAGE_KEY);
       if (Array.isArray(stored)) {
@@ -178,10 +234,12 @@ export const PlantProvider: React.FC<React.PropsWithChildren> = ({ children }) =
   const commitPlants = useCallback((mutator: (plants: PlantState[]) => PlantState[]) => {
     setPlants(prev => {
       const next = mutator(prev);
-      void storageSet(STORAGE_KEY, next);
-      return next;
+      const normalized = normalizePlantsList(next);
+      void storageSet(STORAGE_KEY, normalized);
+      syncToCloud(normalized);
+      return normalized;
     });
-  }, []);
+  }, [syncToCloud]);
 
   const addPlant = useCallback(
     (name?: string) => {
