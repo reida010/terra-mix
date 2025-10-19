@@ -5,22 +5,19 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 
-interface TabPlaceholderProps {
+interface ChartsPlaceholderProps {
   palette: typeof Colors.light;
-  isCharts: boolean;
 }
 
-export function TabPlaceholder({ palette, isCharts }: TabPlaceholderProps) {
+export function ChartsPlaceholder({ palette }: ChartsPlaceholderProps) {
   return (
     <ThemedView
       style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.border }]}
       lightColor={palette.surface}
       darkColor={palette.surface}>
-      <ThemedText type="title">{isCharts ? 'Charts coming soon' : 'Plant info coming soon'}</ThemedText>
+      <ThemedText type="title">Charts coming soon</ThemedText>
       <ThemedText style={[styles.copy, { color: palette.muted }]}>
-        {isCharts
-          ? 'Visualize trends, watering cadence, and nutrient insights here soon.'
-          : 'Detailed plant profiles will live here. Hang tight!'}
+        Visualize trends, watering cadence, and nutrient insights here soon.
       </ThemedText>
     </ThemedView>
   );

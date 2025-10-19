@@ -6,8 +6,8 @@ import { Colors } from '@/constants/theme';
 
 export const HISTORY_TABS = [
   { id: 'history', label: 'Watering history' },
-  { id: 'charts', label: 'Charts' },
   { id: 'info', label: 'Plant Info' },
+  { id: 'charts', label: 'Charts' },
 ] as const;
 
 export type HistoryTabId = (typeof HISTORY_TABS)[number]['id'];
