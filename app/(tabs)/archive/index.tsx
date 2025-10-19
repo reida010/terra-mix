@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ConfirmationDialog } from '@/components/confirmation-dialog';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WateringHistory } from '@/components/watering-history';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { FEEDING_STAGE_LOOKUP } from '@/constants/feeding';
@@ -28,21 +28,12 @@ export default function ArchiveScreen() {
   const [pendingRename, setPendingRename] = useState<PlantState | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [activeMenu, setActiveMenu] = useState<PlantState | null>(null);
-  const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
+  const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const palette = Colors[colorScheme];
 
-  useEffect(() => {
-    if (selectedPlantId && !archivedPlants.find(plant => plant.id === selectedPlantId)) {
-      setSelectedPlantId(null);
-    }
-  }, [archivedPlants, selectedPlantId]);
-
   const handleRestore = (id: string) => {
     archivePlant(id, false);
-    if (selectedPlantId === id) {
-      setSelectedPlantId(null);
-    }
     setActiveMenu(null);
   };
 
@@ -64,9 +55,6 @@ export default function ArchiveScreen() {
           style: 'destructive',
           onPress: () => {
             deletePlant(id);
-            if (selectedPlantId === id) {
-              setSelectedPlantId(null);
-            }
           },
         },
       ]
@@ -91,10 +79,6 @@ export default function ArchiveScreen() {
     setRenameValue('');
   };
 
-  const handleToggleSelected = (id: string) => {
-    setSelectedPlantId(current => (current === id ? null : id));
-  };
-
   return (
     <>
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -111,12 +95,16 @@ export default function ArchiveScreen() {
                 const stage = FEEDING_STAGE_LOOKUP[plant.stageId];
                 const lastLog = plant.logs[0];
                 const totalMl = lastLog ? lastLog.fertilizers.reduce((sum, dose) => sum + dose.ml, 0) : 0;
-                const isSelected = selectedPlantId === plant.id;
 
                 return (
                   <Pressable
                     key={plant.id}
-                    onPress={() => handleToggleSelected(plant.id)}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(tabs)/archive/[id]',
+                        params: { id: plant.id },
+                      })
+                    }
                     accessibilityRole="button"
                     accessibilityLabel={`View ${plant.name} details`}
                     style={({ pressed }) => [pressed && styles.cardPressed]}
@@ -126,7 +114,7 @@ export default function ArchiveScreen() {
                         styles.card,
                         {
                           backgroundColor: palette.surface,
-                          borderColor: isSelected ? palette.accent : palette.border,
+                          borderColor: palette.border,
                         },
                       ]}>
                       <View style={styles.headerRow}>
@@ -159,11 +147,6 @@ export default function ArchiveScreen() {
                       ) : (
                         <ThemedText style={[styles.summaryValue, { color: palette.muted }]}>No waterings logged yet.</ThemedText>
                       )}
-                      {isSelected ? (
-                        <View style={styles.historySection}>
-                          <WateringHistory logs={plant.logs} emptyMessage="No waterings logged yet." />
-                        </View>
-                      ) : null}
                     </ThemedView>
                   </Pressable>
                 );
@@ -305,10 +288,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  historySection: {
-    marginTop: 12,
-    gap: 12,
   },
   menuList: {
     gap: 8,
