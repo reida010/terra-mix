@@ -11,8 +11,9 @@ import { formatMl } from '@/utils/feeding';
 
 interface WateringHistoryProps {
   logs: WateringLogEntry[];
-  onEdit: (log: WateringLogEntry) => void;
-  onDelete: (log: WateringLogEntry) => void;
+  onEdit?: (log: WateringLogEntry) => void;
+  onDelete?: (log: WateringLogEntry) => void;
+  emptyMessage?: string;
 }
 
 const formatDate = (iso: string) => {
@@ -31,14 +32,19 @@ const formatNumber = (value?: number) => {
   return fixed.replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
 };
 
-export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, onDelete }) => {
+export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, onDelete, emptyMessage }) => {
   const colorScheme = useColorScheme() ?? 'light';
   const palette = Colors[colorScheme];
+  const canEdit = typeof onEdit === 'function';
+  const canDelete = typeof onDelete === 'function';
+  const showActions = canEdit || canDelete;
 
   if (!logs.length) {
     return (
       <ThemedView style={[styles.emptyCard, { backgroundColor: palette.surfaceMuted, borderColor: palette.border }]}>
-        <ThemedText style={[styles.emptyText, { color: palette.muted }]}>No waterings logged yet. Tap “Log watering” to add one.</ThemedText>
+        <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+          {emptyMessage ?? 'No waterings logged yet. Tap “Log watering” to add one.'}
+        </ThemedText>
       </ThemedView>
     );
   }
@@ -61,31 +67,37 @@ export const WateringHistory: React.FC<WateringHistoryProps> = ({ logs, onEdit, 
           <ThemedView
             key={log.id}
             style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <View style={styles.headerRow}>
+            <View style={[styles.headerRow, !showActions && styles.headerRowSolo]}>
               <View style={styles.headerInfo}>
                 <ThemedText type="subtitle">{formatDate(log.createdAt)}</ThemedText>
                 <ThemedText style={[styles.headerMeta, { color: palette.muted }]}>
                   {headerParts.join(' · ')}
                 </ThemedText>
               </View>
-              <View style={styles.actions}>
-                <Pressable
-                  style={[styles.actionButton, { borderColor: palette.border }]}
-                  onPress={() => onEdit(log)}
-                  hitSlop={10}
-                  accessibilityRole="button"
-                  accessibilityLabel="Edit watering log">
-                  <ThemedText style={styles.actionLabel}>Edit</ThemedText>
-                </Pressable>
-                <Pressable
-                  style={[styles.actionButton, { borderColor: palette.border }]}
-                  onPress={() => onDelete(log)}
-                  hitSlop={10}
-                  accessibilityRole="button"
-                  accessibilityLabel="Delete watering log">
-                  <ThemedText style={[styles.actionLabel, { color: palette.danger }]}>Delete</ThemedText>
-                </Pressable>
-              </View>
+              {showActions ? (
+                <View style={styles.actions}>
+                  {canEdit ? (
+                    <Pressable
+                      style={[styles.actionButton, { borderColor: palette.border }]}
+                      onPress={() => onEdit?.(log)}
+                      hitSlop={10}
+                      accessibilityRole="button"
+                      accessibilityLabel="Edit watering log">
+                      <ThemedText style={styles.actionLabel}>Edit</ThemedText>
+                    </Pressable>
+                  ) : null}
+                  {canDelete ? (
+                    <Pressable
+                      style={[styles.actionButton, { borderColor: palette.border }]}
+                      onPress={() => onDelete?.(log)}
+                      hitSlop={10}
+                      accessibilityRole="button"
+                      accessibilityLabel="Delete watering log">
+                      <ThemedText style={[styles.actionLabel, { color: palette.danger }]}>Delete</ThemedText>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : null}
             </View>
             <ThemedText style={[styles.stageLabel, { color: palette.muted }]}>{stage?.name ?? log.stageId}</ThemedText>
             <View style={styles.doseList}>
@@ -148,6 +160,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+  },
+  headerRowSolo: {
+    justifyContent: 'flex-start',
   },
   headerInfo: {
     flex: 1,

@@ -206,6 +206,11 @@ export default function HomeScreen() {
     setIsLogging(true);
   };
 
+  const handleCancelLogging = () => {
+    setEditingLog(null);
+    setIsLogging(false);
+  };
+
   const handleEditLog = (log: WateringLogEntry) => {
     setEditingLog(log);
     setIsLogging(true);
@@ -486,6 +491,20 @@ export default function HomeScreen() {
             </ThemedText>
           </ThemedView>
 
+          <View style={[styles.logActions, isCompact && styles.logActionsCompact]}>
+            <Pressable
+              style={[
+                styles.cancelButton,
+                { borderColor: palette.border, backgroundColor: palette.surface },
+                isCompact && styles.cancelButtonCompact,
+              ]}
+              onPress={handleCancelLogging}
+              accessibilityRole="button"
+              accessibilityLabel={isEditing ? 'Cancel editing watering log' : 'Cancel watering log'}>
+              <ThemedText type="defaultSemiBold" style={{ color: palette.muted }}>
+                Cancel
+              </ThemedText>
+            </Pressable>
             <Pressable
               style={[
                 styles.logButton,
@@ -500,15 +519,16 @@ export default function HomeScreen() {
                 isCompact && styles.logButtonCompact,
               ]}
               onPress={handleSubmitLog}
-            accessibilityRole="button">
-            <ThemedText
-              type={isCompact ? 'defaultSemiBold' : 'title'}
-              lightColor="#FFFFFF"
-              darkColor={Colors.dark.background}
-              style={[styles.logButtonLabel, isCompact && styles.logButtonLabelCompact]}>
-              {isEditing ? 'Save changes' : 'Log watering'} ({liters} L · {formStrength}% · {formatMl(totalMl)} nutrients)
-            </ThemedText>
-          </Pressable>
+              accessibilityRole="button">
+              <ThemedText
+                type={isCompact ? 'defaultSemiBold' : 'title'}
+                lightColor="#FFFFFF"
+                darkColor={Colors.dark.background}
+                style={[styles.logButtonLabel, isCompact && styles.logButtonLabelCompact]}>
+                {isEditing ? 'Save changes' : 'Log watering'} ({liters} L · {formStrength}% · {formatMl(totalMl)} nutrients)
+              </ThemedText>
+            </Pressable>
+          </View>
         </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={[styles.historyScroll, isCompact && styles.historyScrollCompact]}>
@@ -660,16 +680,37 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     fontSize: 13,
   },
-  logButton: {
+  logActions: {
     marginTop: 24,
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  logActionsCompact: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
+  cancelButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    flexShrink: 0,
+  },
+  cancelButtonCompact: {
+    width: '100%',
+  },
+  logButton: {
     borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 16,
     alignItems: 'center',
+    flex: 1,
   },
   logButtonCompact: {
     paddingVertical: 12,
     borderRadius: 16,
+    width: '100%',
   },
   logButtonLabel: {
     textAlign: 'center',
