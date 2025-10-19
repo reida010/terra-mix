@@ -4,10 +4,12 @@ import {
   BLOOM_BOOSTER_RECOMMENDATIONS,
   FEEDING_STAGE_LOOKUP,
   FEEDING_STAGES,
+  FULVIC_ACID_DEFAULT_DOSAGE,
   INITIAL_PLANT_NAMES,
+  ROOT_STIMULANT_DEFAULT_DOSAGE,
   ROOT_STIMULANT_DEFAULT_DURATION,
 } from '@/constants/feeding';
-import { AdditivesState, PlantState } from '@/types/plant';
+import { AdditivesState, PlantState, WateringLogEntry } from '@/types/plant';
 import { differenceInDays } from '@/utils/dates';
 import { storageGet, storageSet } from '@/utils/storage';
 
@@ -17,9 +19,11 @@ const createInitialAdditives = (): AdditivesState => ({
   rootStimulant: {
     active: false,
     durationDays: ROOT_STIMULANT_DEFAULT_DURATION,
+    dosageMlPerLiter: ROOT_STIMULANT_DEFAULT_DOSAGE,
   },
   fulvicAcid: {
     active: false,
+    dosageMlPerLiter: FULVIC_ACID_DEFAULT_DOSAGE,
   },
   bloomBooster: {
     active: false,
@@ -64,6 +68,9 @@ const normalizePlant = (plant: PlantState): PlantState => {
       ...plant.additives.rootStimulant,
       active: nextRootActive,
       startDate: nextRootStart,
+      durationDays: plant.additives.rootStimulant.durationDays || ROOT_STIMULANT_DEFAULT_DURATION,
+      dosageMlPerLiter:
+        plant.additives.rootStimulant.dosageMlPerLiter ?? ROOT_STIMULANT_DEFAULT_DOSAGE,
     },
     bloomBooster: {
       ...plant.additives.bloomBooster,
@@ -74,12 +81,19 @@ const normalizePlant = (plant: PlantState): PlantState => {
       ...plant.additives.fulvicAcid,
       active: shouldDisableFulvic ? false : plant.additives.fulvicAcid.active,
       startedAt: shouldDisableFulvic ? undefined : plant.additives.fulvicAcid.startedAt,
+      dosageMlPerLiter:
+        plant.additives.fulvicAcid.dosageMlPerLiter ?? FULVIC_ACID_DEFAULT_DOSAGE,
     },
   };
+
+  const logs: WateringLogEntry[] = Array.isArray(plant.logs)
+    ? [...plant.logs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    : [];
 
   return {
     ...plant,
     additives,
+    logs,
     updatedAt: new Date().toISOString(),
   };
 };
@@ -93,6 +107,7 @@ const createDefaultPlants = (): PlantState[] =>
     preferredWaterLiters: 3,
     additives: createInitialAdditives(),
     updatedAt: new Date().toISOString(),
+    logs: [],
   }));
 
 interface PlantContextValue {
@@ -101,6 +116,8 @@ interface PlantContextValue {
   refresh: () => Promise<void>;
   addPlant: (name?: string) => void;
   updatePlant: (id: string, updater: (plant: PlantState) => PlantState) => void;
+  deletePlant: (id: string) => void;
+  logWatering: (id: string, log: WateringLogEntry) => void;
 }
 
 const PlantContext = createContext<PlantContextValue | undefined>(undefined);
@@ -170,9 +187,31 @@ export const PlantProvider: React.FC<React.PropsWithChildren> = ({ children }) =
     });
   }, []);
 
+  const deletePlant = useCallback((id: string) => {
+    setPlants(prev => {
+      const next = prev.filter(plant => plant.id !== id);
+      storageSet(STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+
+  const logWatering = useCallback((id: string, log: WateringLogEntry) => {
+    setPlants(prev => {
+      const next = prev.map(plant => {
+        if (plant.id !== id) return plant;
+        const logs = [log, ...plant.logs];
+        const updated = normalizePlant({ ...plant, logs });
+        return updated;
+      });
+
+      storageSet(STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+
   const value = useMemo<PlantContextValue>(
-    () => ({ plants, loading, refresh, addPlant, updatePlant }),
-    [plants, loading, refresh, addPlant, updatePlant]
+    () => ({ plants, loading, refresh, addPlant, updatePlant, deletePlant, logWatering }),
+    [plants, loading, refresh, addPlant, updatePlant, deletePlant, logWatering]
   );
 
   return <PlantContext.Provider value={value}>{children}</PlantContext.Provider>;

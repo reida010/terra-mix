@@ -25,11 +25,13 @@ export interface RootStimulantState {
   active: boolean;
   startDate?: string;
   durationDays: number;
+  dosageMlPerLiter: number;
 }
 
 export interface FulvicAcidState {
   active: boolean;
   startedAt?: string;
+  dosageMlPerLiter: number;
 }
 
 export interface BloomBoosterState {
@@ -44,6 +46,36 @@ export interface AdditivesState {
   bloomBooster: BloomBoosterState;
 }
 
+export interface LoggedFertilizerDose {
+  fertilizer: FertilizerId;
+  label: string;
+  ml: number;
+  mlPerLiter: number;
+}
+
+export interface LoggedAdditiveDose {
+  mlPerLiter: number;
+  totalMl: number;
+}
+
+export interface LoggedBloomBoosterDose extends LoggedAdditiveDose {
+  intensity: number;
+}
+
+export interface WateringLogEntry {
+  id: string;
+  createdAt: string;
+  waterLiters: number;
+  strength: number;
+  stageId: FeedingStageId;
+  fertilizers: LoggedFertilizerDose[];
+  additives: {
+    rootStimulant?: LoggedAdditiveDose;
+    fulvicAcid?: LoggedAdditiveDose;
+    bloomBooster?: LoggedBloomBoosterDose;
+  };
+}
+
 export interface PlantState {
   id: string;
   name: string;
@@ -52,4 +84,5 @@ export interface PlantState {
   preferredWaterLiters: number;
   additives: AdditivesState;
   updatedAt: string;
+  logs: WateringLogEntry[];
 }

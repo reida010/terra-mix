@@ -1,11 +1,17 @@
-import { FEEDING_STAGE_LOOKUP, FERTILIZER_LABELS } from '@/constants/feeding';
-import { FertilizerId, PlantState } from '@/types/plant';
+import { BLOOM_BOOSTER_MAX_ML_PER_L, FEEDING_STAGE_LOOKUP, FERTILIZER_LABELS, ROOT_STIMULANT_DEFAULT_DOSAGE, FULVIC_ACID_DEFAULT_DOSAGE } from '@/constants/feeding';
+import { FertilizerId, PlantState, LoggedAdditiveDose, LoggedBloomBoosterDose } from '@/types/plant';
 
 export interface FertilizerDose {
   fertilizer: FertilizerId;
   label: string;
   ml: number;
   mlPerLiter: number;
+}
+
+export interface AdditiveDoseSummary {
+  rootStimulant?: LoggedAdditiveDose;
+  fulvicAcid?: LoggedAdditiveDose;
+  bloomBooster?: LoggedBloomBoosterDose;
 }
 
 export function calculateFertilizerDoses(
@@ -35,4 +41,36 @@ export function formatMl(value: number): string {
     return `${(Math.round(value * 10) / 10).toFixed(1)} ml`;
   }
   return `${Math.round(value)} ml`;
+}
+
+export function calculateAdditiveDoses(plant: PlantState, waterLiters: number): AdditiveDoseSummary {
+  const rootMlPerLiter = plant.additives.rootStimulant.dosageMlPerLiter || ROOT_STIMULANT_DEFAULT_DOSAGE;
+  const fulvicMlPerLiter = plant.additives.fulvicAcid.dosageMlPerLiter || FULVIC_ACID_DEFAULT_DOSAGE;
+  const bloomMlPerLiter = (plant.additives.bloomBooster.intensity / 100) * BLOOM_BOOSTER_MAX_ML_PER_L;
+
+  const summary: AdditiveDoseSummary = {};
+
+  if (plant.additives.rootStimulant.active) {
+    summary.rootStimulant = {
+      mlPerLiter: Number(rootMlPerLiter.toFixed(2)),
+      totalMl: Number((rootMlPerLiter * waterLiters).toFixed(2)),
+    };
+  }
+
+  if (plant.additives.fulvicAcid.active) {
+    summary.fulvicAcid = {
+      mlPerLiter: Number(fulvicMlPerLiter.toFixed(2)),
+      totalMl: Number((fulvicMlPerLiter * waterLiters).toFixed(2)),
+    };
+  }
+
+  if (plant.additives.bloomBooster.active && bloomMlPerLiter > 0) {
+    summary.bloomBooster = {
+      intensity: plant.additives.bloomBooster.intensity,
+      mlPerLiter: Number(bloomMlPerLiter.toFixed(2)),
+      totalMl: Number((bloomMlPerLiter * waterLiters).toFixed(2)),
+    };
+  }
+
+  return summary;
 }

@@ -10,9 +10,10 @@ interface PlantSelectorProps {
   selectedId?: string;
   onSelect: (id: string) => void;
   onAddPlant: () => void;
+  onDelete?: (id: string) => void;
 }
 
-export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId, onSelect, onAddPlant }) => {
+export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId, onSelect, onAddPlant, onDelete }) => {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.container}>
       {plants.map(plant => {
@@ -33,6 +34,19 @@ export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId
                 {plant.strength}% strength
               </ThemedText>
             </View>
+            {onDelete ? (
+              <Pressable
+                style={styles.deleteButton}
+                onPress={event => {
+                  event.stopPropagation();
+                  onDelete(plant.id);
+                }}
+                hitSlop={16}
+                accessibilityRole="button"
+                accessibilityLabel={`Delete ${plant.name}`}>
+                <ThemedText style={styles.deleteLabel}>×</ThemedText>
+              </Pressable>
+            ) : null}
           </Pressable>
         );
       })}
@@ -51,7 +65,7 @@ export const PlantSelector: React.FC<PlantSelectorProps> = ({ plants, selectedId
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 20,
     alignItems: 'stretch',
   },
   item: {
@@ -75,6 +89,21 @@ const styles = StyleSheet.create({
   name: {
     marginBottom: 4,
     textTransform: 'capitalize',
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+  },
+  deleteLabel: {
+    fontSize: 18,
+    lineHeight: 20,
   },
   meta: {
     fontSize: 12,

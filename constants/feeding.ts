@@ -90,6 +90,9 @@ export const BLOOM_BOOSTER_RECOMMENDATIONS: Record<FeedingStageId, number> = {
 };
 
 export const ROOT_STIMULANT_DEFAULT_DURATION = 14;
+export const ROOT_STIMULANT_DEFAULT_DOSAGE = 0.2;
+export const FULVIC_ACID_DEFAULT_DOSAGE = 0.3;
+export const BLOOM_BOOSTER_MAX_ML_PER_L = 2;
 
 export const FEEDING_STAGE_LOOKUP = FEEDING_STAGES.reduce(
   (acc, stage) => ({ ...acc, [stage.id]: stage }),
