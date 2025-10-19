@@ -35,6 +35,7 @@ interface WateringLogFormProps {
   onEcChange: (value: number) => void;
   onToggleRoot: (next: boolean) => void;
   onToggleFulvic: (next: boolean) => void;
+  onAdjustFulvic: (dosage: number) => void;
   onAdjustBloom: (intensity: number) => void;
   onSubmit: () => void;
   onCancel: () => void;
@@ -63,6 +64,7 @@ export function WateringLogForm({
   onEcChange,
   onToggleRoot,
   onToggleFulvic,
+  onAdjustFulvic,
   onAdjustBloom,
   onSubmit,
   onCancel,
@@ -107,6 +109,7 @@ export function WateringLogForm({
           waterLiters={liters}
           onToggleRoot={onToggleRoot}
           onToggleFulvic={onToggleFulvic}
+          onAdjustFulvic={onAdjustFulvic}
           onAdjustBloom={onAdjustBloom}
         />
       ) : null}

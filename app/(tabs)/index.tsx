@@ -315,6 +315,24 @@ export default function HomeScreen() {
     [plant, updatePlant]
   );
 
+  const handleAdjustFulvicAdditive = useCallback(
+    (dosage: number) => {
+      if (!plant) return;
+      const safeDosage = Math.min(Math.max(dosage, 0), 2);
+      updatePlant(plant.id, prev => ({
+        ...prev,
+        additives: {
+          ...prev.additives,
+          fulvicAcid: {
+            ...prev.additives.fulvicAcid,
+            dosageMlPerLiter: Number(safeDosage.toFixed(2)),
+          },
+        },
+      }));
+    },
+    [plant, updatePlant]
+  );
+
   const handleAdjustBloomAdditive = useCallback(
     (intensity: number) => {
       if (!plant) return;
@@ -450,6 +468,7 @@ export default function HomeScreen() {
               onEcChange={setFormEc}
               onToggleRoot={handleToggleRootAdditive}
               onToggleFulvic={handleToggleFulvicAdditive}
+              onAdjustFulvic={handleAdjustFulvicAdditive}
               onAdjustBloom={handleAdjustBloomAdditive}
               onSubmit={handleSubmitLog}
               onCancel={handleCancelLogging}

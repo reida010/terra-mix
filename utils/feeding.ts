@@ -44,8 +44,8 @@ export function formatMl(value: number): string {
 }
 
 export function calculateAdditiveDoses(plant: PlantState, waterLiters: number): AdditiveDoseSummary {
-  const rootMlPerLiter = plant.additives.rootStimulant.dosageMlPerLiter || ROOT_STIMULANT_DEFAULT_DOSAGE;
-  const fulvicMlPerLiter = plant.additives.fulvicAcid.dosageMlPerLiter || FULVIC_ACID_DEFAULT_DOSAGE;
+  const rootMlPerLiter = plant.additives.rootStimulant.dosageMlPerLiter ?? ROOT_STIMULANT_DEFAULT_DOSAGE;
+  const fulvicMlPerLiter = plant.additives.fulvicAcid.dosageMlPerLiter ?? FULVIC_ACID_DEFAULT_DOSAGE;
   const bloomMlPerLiter = (plant.additives.bloomBooster.intensity / 100) * BLOOM_BOOSTER_MAX_ML_PER_L;
   const stageId = plant.stageId;
   const allowsRoot = stageId === 'seedling' || stageId === 'earlyGrow' || stageId === 'grow';

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { NumberInput } from '@/components/number-input';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
@@ -22,12 +23,19 @@ interface AdditiveCardProps {
   doses: AdditiveDoseSummary;
   onToggleRoot: (next: boolean) => void;
   onToggleFulvic: (next: boolean) => void;
+  onAdjustFulvic: (dosage: number) => void;
   onAdjustBloom: (intensity: number) => void;
 }
 
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
-export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot, onToggleFulvic, onAdjustBloom, waterLiters, doses }) => {
+export const AdditiveCard: React.FC<AdditiveCardProps> = ({
+  plant,
+  onToggleRoot,
+  onToggleFulvic,
+  onAdjustFulvic,
+  onAdjustBloom,
+  waterLiters,
+  doses,
+}) => {
   const colorScheme = useColorScheme() ?? 'light';
   const palette = Colors[colorScheme];
   const stageId = plant.stageId;
@@ -48,14 +56,14 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
   const fulvicDose = doses.fulvicAcid;
   const bloomDose = doses.bloomBooster;
 
-  const rootDefault = plant.additives.rootStimulant.dosageMlPerLiter || ROOT_STIMULANT_DEFAULT_DOSAGE;
+  const rootDefault = plant.additives.rootStimulant.dosageMlPerLiter ?? ROOT_STIMULANT_DEFAULT_DOSAGE;
   const rootActive = plant.additives.rootStimulant.active;
   const rootMlPerLiter = rootActive ? rootDose?.mlPerLiter ?? rootDefault : rootDefault;
   const rootTotal = rootActive
     ? rootDose?.totalMl ?? rootMlPerLiter * liters
     : rootDefault * liters;
 
-  const fulvicDefault = plant.additives.fulvicAcid.dosageMlPerLiter || FULVIC_ACID_DEFAULT_DOSAGE;
+  const fulvicDefault = plant.additives.fulvicAcid.dosageMlPerLiter ?? FULVIC_ACID_DEFAULT_DOSAGE;
   const fulvicActive = plant.additives.fulvicAcid.active;
   const fulvicMlPerLiter = fulvicActive ? fulvicDose?.mlPerLiter ?? fulvicDefault : fulvicDefault;
   const fulvicTotal = fulvicActive
@@ -174,6 +182,15 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
               </ThemedText>
             </View>
           </View>
+          <NumberInput
+            label="Dosage"
+            unit="ml/L"
+            value={plant.additives.fulvicAcid.dosageMlPerLiter ?? FULVIC_ACID_DEFAULT_DOSAGE}
+            minimum={0}
+            maximum={2}
+            step={0.05}
+            onChange={onAdjustFulvic}
+          />
           {!fulvicActive ? (
             <ThemedText style={styles.helperMuted}>Enable to include it in the watering log.</ThemedText>
           ) : null}
@@ -206,25 +223,15 @@ export const AdditiveCard: React.FC<AdditiveCardProps> = ({ plant, onToggleRoot,
               </ThemedText>
             </View>
           </View>
-          <View style={styles.bloomRow}>
-            <Pressable
-              style={[styles.roundButton, { borderColor: palette.border, backgroundColor: palette.surfaceMuted }]}
-              onPress={() => onAdjustBloom(clamp(plant.additives.bloomBooster.intensity - 5, 0, 100))}>
-              <ThemedText type="default" lightColor={palette.primary} darkColor={palette.accent}>
-                -
-              </ThemedText>
-            </Pressable>
-            <ThemedText type="title" style={styles.bloomValue}>
-              {plant.additives.bloomBooster.intensity}%
-            </ThemedText>
-            <Pressable
-              style={[styles.roundButton, { borderColor: palette.border, backgroundColor: palette.surfaceMuted }]}
-              onPress={() => onAdjustBloom(clamp(plant.additives.bloomBooster.intensity + 5, 0, 100))}>
-              <ThemedText type="default" lightColor={palette.primary} darkColor={palette.accent}>
-                +
-              </ThemedText>
-            </Pressable>
-          </View>
+          <NumberInput
+            label="Intensity"
+            unit="%"
+            value={plant.additives.bloomBooster.intensity}
+            minimum={0}
+            maximum={100}
+            step={5}
+            onChange={onAdjustBloom}
+          />
         </ThemedView>
       ) : null}
     </View>
@@ -306,24 +313,5 @@ const styles = StyleSheet.create({
   },
   knobActive: {
     transform: [{ translateX: 16 }],
-  },
-  bloomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    marginTop: 12,
-  },
-  bloomValue: {
-    minWidth: 72,
-    textAlign: 'center',
-  },
-  roundButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
   },
 });
