@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ConfirmationDialog } from '@/components/confirmation-dialog';
@@ -10,13 +10,11 @@ import { StagePicker } from '@/components/stage-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WateringHistory } from '@/components/watering-history';
-import { BLOOM_BOOSTER_RECOMMENDATIONS, FEEDING_STAGES } from '@/constants/feeding';
+import { BLOOM_BOOSTER_RECOMMENDATIONS } from '@/constants/feeding';
 import { usePlants } from '@/context/PlantContext';
 import { FeedingStageId, PlantState, WateringLogEntry } from '@/types/plant';
+import { DEFAULT_FORM_EC, DEFAULT_FORM_PH, useWateringForm } from '@/hooks/useWateringForm';
 import { AdditiveDoseSummary, calculateAdditiveDoses, calculateFertilizerDoses, formatMl } from '@/utils/feeding';
-
-const DEFAULT_PH = 6;
-const DEFAULT_EC = 1.2;
 
 export default function HomeScreen() {
   const {
@@ -34,11 +32,6 @@ export default function HomeScreen() {
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [isLogging, setIsLogging] = useState(false);
   const [editingLog, setEditingLog] = useState<WateringLogEntry | null>(null);
-  const [formStage, setFormStage] = useState<FeedingStageId>(FEEDING_STAGES[0].id);
-  const [formStrength, setFormStrength] = useState<number>(75);
-  const [formWater, setFormWater] = useState<number>(3);
-  const [formPh, setFormPh] = useState<number>(DEFAULT_PH);
-  const [formEc, setFormEc] = useState<number>(DEFAULT_EC);
   const [pendingArchive, setPendingArchive] = useState<PlantState | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PlantState | null>(null);
   const [pendingLogDelete, setPendingLogDelete] = useState<{
@@ -67,37 +60,58 @@ export default function HomeScreen() {
   }, [selectedId]);
 
   const plant = useMemo(() => activePlants.find(p => p.id === selectedId), [activePlants, selectedId]);
+  const persistStage = useCallback(
+    (stageId: FeedingStageId) => {
+      if (!plant) return;
+      updatePlant(plant.id, prev => ({
+        ...prev,
+        stageId,
+      }));
+    },
+    [plant, updatePlant]
+  );
 
-  useEffect(() => {
-    if (!plant) return;
-    const lastLog = plant.logs[0];
-    const fallbackPh = typeof lastLog?.ph === 'number' ? lastLog.ph : DEFAULT_PH;
-    const fallbackEc = typeof lastLog?.ec === 'number' ? lastLog.ec : DEFAULT_EC;
+  const persistStrength = useCallback(
+    (strength: number) => {
+      if (!plant) return;
+      updatePlant(plant.id, prev => ({
+        ...prev,
+        strength,
+      }));
+    },
+    [plant, updatePlant]
+  );
 
-    if (!isLogging) {
-      setFormStage(plant.stageId);
-      setFormStrength(plant.strength);
-      setFormWater(plant.preferredWaterLiters);
-      setFormPh(fallbackPh);
-      setFormEc(fallbackEc);
-      setEditingLog(null);
-      return;
-    }
+  const persistWater = useCallback(
+    (liters: number) => {
+      if (!plant) return;
+      updatePlant(plant.id, prev => ({
+        ...prev,
+        preferredWaterLiters: liters,
+      }));
+    },
+    [plant, updatePlant]
+  );
 
-    if (editingLog) {
-      setFormStage(editingLog.stageId);
-      setFormStrength(editingLog.strength);
-      setFormWater(editingLog.waterLiters);
-      setFormPh(typeof editingLog.ph === 'number' ? editingLog.ph : fallbackPh);
-      setFormEc(typeof editingLog.ec === 'number' ? editingLog.ec : fallbackEc);
-    } else {
-      setFormStage(plant.stageId);
-      setFormStrength(plant.strength);
-      setFormWater(plant.preferredWaterLiters);
-      setFormPh(fallbackPh);
-      setFormEc(fallbackEc);
-    }
-  }, [plant, isLogging, editingLog]);
+  const {
+    stageId: formStage,
+    strength: formStrength,
+    waterLiters: formWater,
+    ph: formPh,
+    ec: formEc,
+    setStageId: handleStageChange,
+    setStrength: handleStrengthChange,
+    setWaterLiters: handleWaterChange,
+    setPh: setFormPh,
+    setEc: setFormEc,
+  } = useWateringForm({
+    plant,
+    editingLog,
+    isLogging,
+    onStagePersist: persistStage,
+    onStrengthPersist: persistStrength,
+    onWaterPersist: persistWater,
+  });
 
   useEffect(() => {
     if (!plant) {
@@ -128,36 +142,6 @@ export default function HomeScreen() {
     const safeLiters = liters > 0 ? liters : 1;
     return calculateAdditiveDoses(draftPlant, safeLiters);
   }, [draftPlant, liters]);
-
-  const handleStageChange = (stageId: FeedingStageId) => {
-    setFormStage(stageId);
-    if (plant && !editingLog) {
-      updatePlant(plant.id, prev => ({
-        ...prev,
-        stageId,
-      }));
-    }
-  };
-
-  const handleStrengthChange = (value: number) => {
-    setFormStrength(value);
-    if (plant && !editingLog) {
-      updatePlant(plant.id, prev => ({
-        ...prev,
-        strength: Math.round(value),
-      }));
-    }
-  };
-
-  const handleWaterChange = (value: number) => {
-    setFormWater(value);
-    if (plant && !editingLog) {
-      updatePlant(plant.id, prev => ({
-        ...prev,
-        preferredWaterLiters: Math.max(0, value),
-      }));
-    }
-  };
 
   const handleArchivePlant = () => {
     if (!plant) return;
@@ -259,8 +243,8 @@ export default function HomeScreen() {
   const handleSubmitLog = () => {
     if (!plant || !draftPlant) return;
     const safeLiters = liters > 0 ? liters : 1;
-    const safePh = Number.isFinite(formPh) ? formPh : DEFAULT_PH;
-    const safeEc = Number.isFinite(formEc) ? formEc : DEFAULT_EC;
+    const safePh = Number.isFinite(formPh) ? formPh : DEFAULT_FORM_PH;
+    const safeEc = Number.isFinite(formEc) ? formEc : DEFAULT_FORM_EC;
     const normalizedPh = Number(safePh.toFixed(2));
     const normalizedEc = Number(safeEc.toFixed(2));
 

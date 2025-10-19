@@ -15,6 +15,8 @@ import { storageGet, storageSet } from '@/utils/storage';
 
 const STORAGE_KEY = 'terra-mix::plants';
 
+const normalizePlantsList = (plants: PlantState[]): PlantState[] => plants.map(normalizePlant);
+
 const createInitialAdditives = (): AdditivesState => ({
   rootStimulant: {
     active: false,
@@ -136,34 +138,54 @@ export const PlantProvider: React.FC<React.PropsWithChildren> = ({ children }) =
 
   useEffect(() => {
     const loadPlants = async () => {
-      const stored = await storageGet<PlantState[]>(STORAGE_KEY);
-      if (stored && stored.length > 0) {
-        const normalized = stored.map(normalizePlant);
-        setPlants(normalized);
-        await storageSet(STORAGE_KEY, normalized);
-      } else {
-        const defaults = createDefaultPlants().map(normalizePlant);
+      try {
+        const stored = await storageGet<PlantState[]>(STORAGE_KEY);
+        if (Array.isArray(stored) && stored.length > 0) {
+          const normalized = normalizePlantsList(stored);
+          setPlants(normalized);
+          await storageSet(STORAGE_KEY, normalized);
+        } else {
+          const defaults = normalizePlantsList(createDefaultPlants());
+          setPlants(defaults);
+          await storageSet(STORAGE_KEY, defaults);
+        }
+      } catch (error) {
+        console.warn('Failed to load plants from storage', error);
+        const defaults = normalizePlantsList(createDefaultPlants());
         setPlants(defaults);
         await storageSet(STORAGE_KEY, defaults);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     loadPlants();
   }, []);
 
   const refresh = useCallback(async () => {
-    const stored = await storageGet<PlantState[]>(STORAGE_KEY);
-    if (stored) {
-      const normalized = stored.map(normalizePlant);
-      setPlants(normalized);
-      await storageSet(STORAGE_KEY, normalized);
+    try {
+      const stored = await storageGet<PlantState[]>(STORAGE_KEY);
+      if (Array.isArray(stored)) {
+        const normalized = normalizePlantsList(stored);
+        setPlants(normalized);
+        await storageSet(STORAGE_KEY, normalized);
+      }
+    } catch (error) {
+      console.warn('Failed to refresh plants from storage', error);
     }
+  }, []);
+
+  const commitPlants = useCallback((mutator: (plants: PlantState[]) => PlantState[]) => {
+    setPlants(prev => {
+      const next = mutator(prev);
+      void storageSet(STORAGE_KEY, next);
+      return next;
+    });
   }, []);
 
   const addPlant = useCallback(
     (name?: string) => {
-      setPlants(prev => {
+      commitPlants(prev => {
         const newPlant: PlantState = normalizePlant({
           id: `plant-${Date.now()}`,
           name: name ?? `Plant ${prev.length + 1}`,
@@ -174,96 +196,82 @@ export const PlantProvider: React.FC<React.PropsWithChildren> = ({ children }) =
           updatedAt: new Date().toISOString(),
           archivedAt: undefined,
         });
-        const next = [...prev, newPlant];
-        storageSet(STORAGE_KEY, next);
-        return next;
+        return [...prev, newPlant];
       });
     },
-    []
+    [commitPlants]
   );
 
-  const updatePlant = useCallback((id: string, updater: (plant: PlantState) => PlantState) => {
-    setPlants(prev => {
-      const next = prev.map(plant => {
-        if (plant.id !== id) return plant;
-        const updated = normalizePlant(updater(plant));
+  const updatePlant = useCallback(
+    (id: string, updater: (plant: PlantState) => PlantState) => {
+      commitPlants(prev =>
+        prev.map(plant => {
+          if (plant.id !== id) return plant;
+          return normalizePlant(updater(plant));
+        })
+      );
+    },
+    [commitPlants]
+  );
 
-        return updated;
-      });
+  const deletePlant = useCallback(
+    (id: string) => {
+      commitPlants(prev => prev.filter(plant => plant.id !== id));
+    },
+    [commitPlants]
+  );
 
-      storageSet(STORAGE_KEY, next);
-      return next;
-    });
-  }, []);
+  const logWatering = useCallback(
+    (id: string, log: WateringLogEntry) => {
+      commitPlants(prev =>
+        prev.map(plant => {
+          if (plant.id !== id) return plant;
+          const logs = [log, ...plant.logs];
+          return normalizePlant({ ...plant, logs });
+        })
+      );
+    },
+    [commitPlants]
+  );
 
-  const deletePlant = useCallback((id: string) => {
-    setPlants(prev => {
-      const next = prev.filter(plant => plant.id !== id);
-      storageSet(STORAGE_KEY, next);
-      return next;
-    });
-  }, []);
-
-  const logWatering = useCallback((id: string, log: WateringLogEntry) => {
-    setPlants(prev => {
-      const next = prev.map(plant => {
-        if (plant.id !== id) return plant;
-        const logs = [log, ...plant.logs];
-        const updated = normalizePlant({ ...plant, logs });
-        return updated;
-      });
-
-      storageSet(STORAGE_KEY, next);
-      return next;
-    });
-  }, []);
-
-  const archivePlant = useCallback((id: string, archived: boolean) => {
-    setPlants(prev => {
-      const next = prev.map(plant => {
-        if (plant.id !== id) return plant;
-        const archivedAt = archived ? plant.archivedAt ?? new Date().toISOString() : undefined;
-        return normalizePlant({ ...plant, archivedAt });
-      });
-
-      storageSet(STORAGE_KEY, next);
-      return next;
-    });
-  }, []);
+  const archivePlant = useCallback(
+    (id: string, archived: boolean) => {
+      commitPlants(prev =>
+        prev.map(plant => {
+          if (plant.id !== id) return plant;
+          const archivedAt = archived ? plant.archivedAt ?? new Date().toISOString() : undefined;
+          return normalizePlant({ ...plant, archivedAt });
+        })
+      );
+    },
+    [commitPlants]
+  );
 
   const updateWateringLog = useCallback(
     (plantId: string, logId: string, updater: (entry: WateringLogEntry) => WateringLogEntry) => {
-      setPlants(prev => {
-        const next = prev.map(plant => {
+      commitPlants(prev =>
+        prev.map(plant => {
           if (plant.id !== plantId) return plant;
-          const logs = plant.logs.map(log => {
-            if (log.id !== logId) return log;
-            return updater(log);
-          });
-          const updated = normalizePlant({ ...plant, logs });
-          return updated;
-        });
-
-        storageSet(STORAGE_KEY, next);
-        return next;
-      });
+          const logs = plant.logs.map(log => (log.id === logId ? updater(log) : log));
+          return normalizePlant({ ...plant, logs });
+        })
+      );
     },
-    []
+    [commitPlants]
   );
 
-  const deleteWateringLog = useCallback((plantId: string, logId: string) => {
-    setPlants(prev => {
-      const next = prev.map(plant => {
-        if (plant.id !== plantId) return plant;
-        const logs = plant.logs.filter(log => log.id !== logId);
-        const updated = normalizePlant({ ...plant, logs });
-        return updated;
-      });
-
-      storageSet(STORAGE_KEY, next);
-      return next;
-    });
-  }, []);
+  const deleteWateringLog = useCallback(
+    (plantId: string, logId: string) => {
+      commitPlants(prev =>
+        prev.map(plant => {
+          if (plant.id !== plantId) return plant;
+          const logs = plant.logs.filter(log => log.id !== logId);
+          return normalizePlant({ ...plant, logs });
+        })
+      );
+    },
+    [commitPlants]
+  );
 
   const value = useMemo<PlantContextValue>(
     () => ({
