@@ -16,6 +16,17 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
+## Configure Firebase cloud sync
+
+The app can back up each device's plant data to [Firebase Firestore](https://firebase.google.com/). To enable cloud sync:
+
+1. Create a Firebase project and enable Firestore in **Native** or **Datastore** mode.
+2. Register a Web app in Firebase to obtain the configuration object (API key, project ID, etc.).
+3. Update [`app.json`](./app.json) under `expo.extra.firebase` with your project's values. Alternatively, define the same keys with the `EXPO_PUBLIC_FIREBASE_*` environment variables before running the app.
+4. Start the Expo app. The first time the app runs it will generate a device identifier, load any existing Firestore document at `users/<device-id>`, and keep the local cache in sync when you make changes.
+
+If no Firebase configuration is provided, the app keeps working offline using the local storage fallback.
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)
