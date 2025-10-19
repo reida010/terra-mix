@@ -409,22 +409,6 @@ export default function HomeScreen() {
               step={0.5}
               onChange={handleWaterChange}
             />
-            <NumberInput
-              label="pH"
-              value={formPh}
-              minimum={0}
-              maximum={14}
-              step={0.1}
-              onChange={setFormPh}
-            />
-            <NumberInput
-              label="EC"
-              unit="mS/cm"
-              value={formEc}
-              minimum={0}
-              step={0.1}
-              onChange={setFormEc}
-            />
             <ThemedText style={[styles.helperCopy, { color: palette.muted }]}>
               The strength slider multiplies the base feeding chart. 100% equals the published Terra Aquatica schedule.
             </ThemedText>
@@ -491,44 +475,48 @@ export default function HomeScreen() {
             </ThemedText>
           </ThemedView>
 
-          <View style={[styles.logActions, isCompact && styles.logActionsCompact]}>
-            <Pressable
-              style={[
-                styles.cancelButton,
-                { borderColor: palette.border, backgroundColor: palette.surface },
-                isCompact && styles.cancelButtonCompact,
-              ]}
-              onPress={handleCancelLogging}
-              accessibilityRole="button"
-              accessibilityLabel={isEditing ? 'Cancel editing watering log' : 'Cancel watering log'}>
-              <ThemedText type="defaultSemiBold" style={{ color: palette.muted }}>
-                Cancel
-              </ThemedText>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.logButton,
-                {
-                  backgroundColor: palette.accent,
-                  shadowColor: palette.accent,
-                  shadowOffset: { width: 0, height: 6 },
-                  shadowOpacity: colorScheme === 'light' ? 0.25 : 0.4,
-                  shadowRadius: 12,
-                  elevation: 4,
-                },
-                isCompact && styles.logButtonCompact,
-              ]}
-              onPress={handleSubmitLog}
-              accessibilityRole="button">
-              <ThemedText
-                type={isCompact ? 'defaultSemiBold' : 'title'}
-                lightColor="#FFFFFF"
-                darkColor={Colors.dark.background}
-                style={[styles.logButtonLabel, isCompact && styles.logButtonLabelCompact]}>
-                {isEditing ? 'Save changes' : 'Log watering'} ({liters} L · {formStrength}% · {formatMl(totalMl)} nutrients)
-              </ThemedText>
-            </Pressable>
+          <View style={[styles.section, styles.measureSection]}>
+            <NumberInput
+              label="pH"
+              value={formPh}
+              minimum={0}
+              maximum={14}
+              step={0.1}
+              onChange={setFormPh}
+            />
+            <NumberInput
+              label="EC"
+              unit="mS/cm"
+              value={formEc}
+              minimum={0}
+              step={0.1}
+              onChange={setFormEc}
+            />
           </View>
+
+          <Pressable
+            style={[
+              styles.logButton,
+              {
+                backgroundColor: palette.accent,
+                shadowColor: palette.accent,
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: colorScheme === 'light' ? 0.25 : 0.4,
+                shadowRadius: 12,
+                elevation: 4,
+              },
+              isCompact && styles.logButtonCompact,
+            ]}
+            onPress={handleSubmitLog}
+            accessibilityRole="button">
+            <ThemedText
+              type={isCompact ? 'defaultSemiBold' : 'title'}
+              lightColor="#FFFFFF"
+              darkColor={Colors.dark.background}
+              style={[styles.logButtonLabel, isCompact && styles.logButtonLabelCompact]}>
+              {isEditing ? 'Save changes' : 'Log watering'} ({liters} L · {formStrength}% · {formatMl(totalMl)} nutrients)
+            </ThemedText>
+          </Pressable>
         </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={[styles.historyScroll, isCompact && styles.historyScrollCompact]}>
@@ -663,6 +651,9 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 12,
     gap: 8,
+  },
+  measureSection: {
+    marginTop: 24,
   },
   helperCopy: {
     opacity: 0.7,
