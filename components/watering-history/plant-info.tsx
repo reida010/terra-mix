@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  Pressable,
-  StyleSheet,
-  View,
-  type PressableStateCallbackType,
-} from 'react-native';
+import { Pressable, StyleSheet, View, type PressableStateCallbackType } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
@@ -34,7 +29,7 @@ export function PlantInfo({ plant, palette, isCompact, onRename, onArchive, onDe
 
   return (
     <View style={[styles.container, isCompact && styles.containerCompact]}>
-      <View style={[styles.card, { borderColor: palette.border, backgroundColor: palette.surface }]}> 
+      <View style={[styles.card, { borderColor: palette.border, backgroundColor: palette.surface }]}>
         <ThemedText type="title" style={styles.sectionTitle}>
           Plant details
         </ThemedText>
