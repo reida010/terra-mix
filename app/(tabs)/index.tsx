@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { HistoryMenuDialog } from '@/components/watering-history/history-menu-dialog';
 import { HistoryOverview } from '@/components/watering-history/history-overview';
+import { HistoryCharts } from '@/components/watering-history/history-charts';
 import { HistoryTabs, HistoryTabId } from '@/components/watering-history/history-tabs';
 import { RenameDialog } from '@/components/watering-history/rename-dialog';
 import { TabPlaceholder } from '@/components/watering-history/tab-placeholder';
@@ -479,8 +480,10 @@ export default function HomeScreen() {
                   onEditLog={handleEditLog}
                   onDeleteLog={handleDeleteLog}
                 />
+              ) : activeHistoryTab === 'charts' ? (
+                <HistoryCharts logs={plant.logs} palette={palette} />
               ) : (
-                <TabPlaceholder palette={palette} isCharts={activeHistoryTab === 'charts'} />
+                <TabPlaceholder palette={palette} />
               )}
             </ScrollView>
           )}
