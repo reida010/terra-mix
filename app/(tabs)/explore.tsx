@@ -1,112 +1,119 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import { FERTILIZER_LABELS, FEEDING_STAGES, ROOT_STIMULANT_DEFAULT_DURATION } from '@/constants/feeding';
 
-export default function TabTwoScreen() {
+const FERTILIZER_ORDER = ['grow', 'micro', 'bloom'] as const;
+
+export default function ReferenceScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
+    <ThemedView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <ThemedText type="title" style={styles.heading}>
+          Feeding reference
         </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
+        <ThemedText style={styles.intro}>
+          Terra Aquatica&apos;s TriPart series shines when each part is nudged for the plant&apos;s phase. Use this overview to sense
+          check the values that the calculator generates on the main tab.
         </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
+
+        {FEEDING_STAGES.map(stage => (
+          <View key={stage.id} style={styles.card}>
+            <ThemedText type="subtitle" style={styles.stageTitle}>
+              {stage.name}
             </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+            <ThemedText style={styles.stageDescription}>{stage.description}</ThemedText>
+            <View style={styles.rateTable}>
+              {FERTILIZER_ORDER.map(key => {
+                const rate = stage.rates.find(entry => entry.fertilizer === key);
+                if (!rate) return null;
+                return (
+                  <View key={key} style={styles.rateRow}>
+                    <ThemedText type="defaultSemiBold">{FERTILIZER_LABELS[key]}</ThemedText>
+                    <ThemedText>{rate.mlPerLiter} ml / L</ThemedText>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+
+        <View style={styles.card}>
+          <ThemedText type="subtitle">Additive habits</ThemedText>
+          <View style={styles.bulletList}>
+            <ThemedText style={styles.stageDescription}>
+              • Root stimulant: run {ROOT_STIMULANT_DEFAULT_DURATION} days after transplant, then give roots a breather.
+            </ThemedText>
+            <ThemedText style={styles.stageDescription}>
+              • Fulvic acid: keep it in the mix through veg. The app parks it automatically once you flip to bloom.
+            </ThemedText>
+            <ThemedText style={styles.stageDescription}>
+              • Bloom booster: ease in around preflower, peak mid bloom, then feather off for ripening.
+            </ThemedText>
+          </View>
+        </View>
+
+        <View style={[styles.card, styles.tipCard]}>
+          <ThemedText type="subtitle">Quick mixing tips</ThemedText>
+          <ThemedText style={styles.tipText}>
+            Always add Micro to the water first so calcium doesn&apos;t lock out. Follow with Grow, then Bloom, stirring between
+            additions. pH after the nutrients go in, and remix if the solution sits for more than 24 hours.
+          </ThemedText>
+        </View>
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
   },
-  titleContainer: {
-    flexDirection: 'row',
+  scroll: {
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    gap: 16,
+  },
+  heading: {
+    marginBottom: 8,
+  },
+  intro: {
+    fontSize: 14,
+    opacity: 0.85,
+  },
+  card: {
+    borderRadius: 20,
+    padding: 18,
+    gap: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(148, 163, 184, 0.4)',
+    backgroundColor: 'rgba(15, 23, 42, 0.05)',
+  },
+  stageTitle: {
+    textTransform: 'capitalize',
+  },
+  stageDescription: {
+    fontSize: 13,
+    opacity: 0.85,
+  },
+  rateTable: {
     gap: 8,
+  },
+  rateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  bulletList: {
+    gap: 4,
+  },
+  tipCard: {
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+  },
+  tipText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
