@@ -469,7 +469,14 @@ export default function HomeScreen() {
               ) : activeHistoryTab === 'charts' ? (
                 <HistoryCharts logs={plant.logs} palette={palette} />
               ) : (
-                <TabPlaceholder palette={palette} />
+                <PlantInfo
+                  plant={plant}
+                  palette={palette}
+                  isCompact={isCompact}
+                  onRename={handleRenamePlant}
+                  onArchive={handleArchivePlant}
+                  onDelete={() => requestDeletePlant(plant)}
+                />
               )}
             </ScrollView>
           )}
